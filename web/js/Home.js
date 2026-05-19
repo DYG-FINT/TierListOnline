@@ -153,6 +153,19 @@ function handleMessage(msg) {
                 updateLabelColorDOM(msg.rows[i].id, msg.rows[i].color);
             }
             break;
+
+        case 'image_fit_toggled':
+            var img = findImageInState(msg.image_id);
+            if (img) img.fit_width = msg.fit_width;
+            var el = document.querySelector('.character[data-image-id="' + msg.image_id + '"]');
+            if (el) {
+                if (msg.fit_width) {
+                    el.classList.add('fit-width');
+                } else {
+                    el.classList.remove('fit-width');
+                }
+            }
+            break;
     }
 }
 
@@ -308,13 +321,21 @@ function buildRowDOM(row) {
 
 function renderCharacter(img, container) {
     var div = document.createElement('div');
-    div.className = 'character';
+    div.className = 'character' + (img.fit_width ? ' fit-width' : '');
     div.setAttribute('data-image-id', img.id);
-    div.setAttribute('data-url', img.url);
-    div.style.backgroundImage = 'url(' + img.url + ')';
     div.draggable = true;
     div.addEventListener('dragstart', handleDragStart);
     div.addEventListener('dragend', handleDragEnd);
+    div.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        send({type: 'toggle_image_fit', image_id: img.id});
+    });
+
+    var imgEl = document.createElement('img');
+    imgEl.src = img.url;
+    imgEl.alt = '';
+    div.appendChild(imgEl);
+
     container.appendChild(div);
 }
 

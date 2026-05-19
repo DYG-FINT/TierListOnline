@@ -18,6 +18,7 @@ type ImageItem struct {
 	ID       string `json:"id"`
 	Filename string `json:"filename"`
 	URL      string `json:"url"`
+	FitWidth bool   `json:"fit_width"`
 }
 
 type Message struct {
@@ -58,6 +59,9 @@ type Message struct {
 	ImageID     string `json:"image_id,omitempty"`
 	TargetRowID string `json:"target_row_id,omitempty"`
 	TargetIndex int    `json:"target_index,omitempty"`
+
+	// toggle_image_fit / image_fit_toggled
+	FitWidth bool `json:"fit_width,omitempty"`
 }
 
 type FullStateMsg struct {

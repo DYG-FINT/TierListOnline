@@ -387,6 +387,49 @@ func (h *Hub) applyColorSequence(rowID string) []byte {
 	return b
 }
 
+func (h *Hub) toggleImageFit(imageID string) []byte {
+	h.mu.Lock()
+	found := false
+	var newVal bool
+
+	for i := range h.state.Rows {
+		for j := range h.state.Rows[i].Images {
+			if h.state.Rows[i].Images[j].ID == imageID {
+				h.state.Rows[i].Images[j].FitWidth = !h.state.Rows[i].Images[j].FitWidth
+				newVal = h.state.Rows[i].Images[j].FitWidth
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for i := range h.state.StagingImages {
+			if h.state.StagingImages[i].ID == imageID {
+				h.state.StagingImages[i].FitWidth = !h.state.StagingImages[i].FitWidth
+				newVal = h.state.StagingImages[i].FitWidth
+				found = true
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if !found {
+		return nil
+	}
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{
+		Type:     "image_fit_toggled",
+		ImageID:  imageID,
+		FitWidth: newVal,
+	})
+	return b
+}
+
 func (h *Hub) handleMessage(_ *Client, raw []byte) {
 	var msg models.Message
 	if err := json.Unmarshal(raw, &msg); err != nil {
@@ -429,6 +472,8 @@ func (h *Hub) handleMessage(_ *Client, raw []byte) {
 		broadcast = h.stageAll()
 	case "apply_color_sequence":
 		broadcast = h.applyColorSequence(msg.RowID)
+	case "toggle_image_fit":
+		broadcast = h.toggleImageFit(msg.ImageID)
 	default:
 		log.Printf("未知消息类型：%s", msg.Type)
 		return

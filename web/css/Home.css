@@ -119,15 +119,30 @@ h1 {
     display: inline-block;
     height: 72px;
     width: 72px;
-    background-position: center;
-    background-size: cover;
     flex: 0 0 auto;
     cursor: grab;
     margin: 4px;
     border-radius: 4px;
     background-color: #333;
 }
+.character img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+    pointer-events: none;
+}
 .character:active { cursor: grabbing; }
+
+.character.fit-width {
+    width: auto;
+}
+.character.fit-width img {
+    width: auto;
+    height: 72px;
+    object-fit: contain;
+}
 
 .settings-control {
     width: 80px;
