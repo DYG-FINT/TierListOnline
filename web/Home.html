@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从夯到拉锐评</title>
+    <link rel="stylesheet" href="css/Home.css">
+</head>
+<body>
+
+    <h1 contenteditable="plaintext-only">加载中...</h1>
+
+    <!-- Connection Status -->
+    <div id="conn-status" title="连接中"></div>
+
+    <!-- Tier List -->
+    <div id="tier-wrap">
+        <div id="tier-container"></div>
+    </div>
+
+    <!-- Bottom Area: Delete Zone + Staging Area -->
+    <div id="bottom-area">
+        <div id="delete-wrap">
+            <div id="delete-zone">删除图片</div>
+        </div>
+        <div id="staging-wrap">
+            <div id="staging-area"></div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="btn-row">
+        <label class="file-btn" style="display:inline-block;cursor:pointer;">选择文件
+            <input id="file-input" type="file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/ico, image/x-icon, image/vnd.microsoft.icon, image/bmp, image/svg+xml, image/tiff, image/avif, image/heic, image/heif, image/jp2, image/jxl" multiple style="display:none;">
+        </label>
+        <button id="color-picker-link" onclick="toggleBgColorPicker()">更改背景颜色</button>
+        <button id="reset-btn" class="reset-button">重置<span id="reset-progress" class="reset-progress"></span></button>
+    </div>
+
+    <!-- Background Color Picker -->
+    <div id="backgroundcolorselectContainer">
+        <div id="backgroundcolorselect">
+            <span style="background:#FF7F7F" onclick="changeBgColor('#FF7F7F', this)"></span>
+            <span style="background:#FFBF7F" onclick="changeBgColor('#FFBF7F', this)"></span>
+            <span style="background:#FFDF7F" onclick="changeBgColor('#FFDF7F', this)"></span>
+            <span style="background:#FFFF7F" onclick="changeBgColor('#FFFF7F', this)"></span>
+            <span style="background:#BFFF7F" onclick="changeBgColor('#BFFF7F', this)"></span>
+            <span style="background:#7FFF7F" onclick="changeBgColor('#7FFF7F', this)"></span>
+            <span style="background:#7FFFFF" onclick="changeBgColor('#7FFFFF', this)"></span>
+            <span style="background:#7FBFFF" onclick="changeBgColor('#7FBFFF', this)"></span>
+            <span style="background:#7F7FFF" onclick="changeBgColor('#7F7FFF', this)"></span>
+            <span style="background:#FF7FFF" onclick="changeBgColor('#FF7FFF', this)"></span>
+            <span style="background:#BF7FBF" onclick="changeBgColor('#BF7FBF', this)"></span>
+            <span style="background:#3B3B3B" onclick="changeBgColor('#3B3B3B', this)"></span>
+            <span style="background:#858585" onclick="changeBgColor('#858585', this)"></span>
+            <span style="background:#CFCFCF" onclick="changeBgColor('#CFCFCF', this)"></span>
+            <span style="background:#F7F7F7" onclick="changeBgColor('#F7F7F7', this)"></span>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="overlay">
+        <div id="modal">
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <h4>选择标签背景颜色：</h4>
+            <div id="color-select">
+                <span style="background:#FF7F7F" onclick="selectLabelColor('#FF7F7F', this)"></span>
+                <span style="background:#FFBF7F" onclick="selectLabelColor('#FFBF7F', this)"></span>
+                <span style="background:#FFDF7F" onclick="selectLabelColor('#FFDF7F', this)"></span>
+                <span style="background:#FFFF7F" onclick="selectLabelColor('#FFFF7F', this)"></span>
+                <span style="background:#BFFF7F" onclick="selectLabelColor('#BFFF7F', this)"></span>
+                <span style="background:#7FFF7F" onclick="selectLabelColor('#7FFF7F', this)"></span>
+                <span style="background:#7FFFFF" onclick="selectLabelColor('#7FFFFF', this)"></span>
+                <span style="background:#7FBFFF" onclick="selectLabelColor('#7FBFFF', this)"></span>
+                <span style="background:#7F7FFF" onclick="selectLabelColor('#7F7FFF', this)"></span>
+                <span style="background:#FF7FFF" onclick="selectLabelColor('#FF7FFF', this)"></span>
+                <span style="background:#BF7FBF" onclick="selectLabelColor('#BF7FBF', this)"></span>
+                <span style="background:#3B3B3B" onclick="selectLabelColor('#3B3B3B', this)"></span>
+                <span style="background:#858585" onclick="selectLabelColor('#858585', this)"></span>
+                <span style="background:#CFCFCF" onclick="selectLabelColor('#CFCFCF', this)"></span>
+                <span style="background:#F7F7F7" onclick="selectLabelColor('#F7F7F7', this)"></span>
+            </div>
+            <h4>编辑标签文字：</h4>
+            <textarea class="settings-label" maxlength="500" id="labelName" style="height:50px;"></textarea>
+            <div class="modal-buttons">
+                <button id="delete-row" onclick="deleteRow()">删除此行</button>
+                <button id="clear-row" onclick="clearRow()">放入暂放区</button>
+            </div>
+            <div class="modal-buttons">
+                <button id="add-row-up" onclick="addRow('above')">在上方插入行</button>
+                <button id="add-row-below" onclick="addRow('below')">在下方插入行</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/Home.js"></script>
+</body>
+</html>
