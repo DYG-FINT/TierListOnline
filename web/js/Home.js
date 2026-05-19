@@ -779,6 +779,56 @@ if (stageAllBtn) {
     stageAllBtn.addEventListener('touchcancel', cancelStageAll);
 }
 
+// ========== Page-Level File Drop ==========
+
+function isFileDrag(e) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) return true;
+    if (e.dataTransfer.types) {
+        for (var i = 0; i < e.dataTransfer.types.length; i++) {
+            if (e.dataTransfer.types[i] === 'Files') return true;
+        }
+    }
+    if (e.dataTransfer.items) {
+        for (var i = 0; i < e.dataTransfer.items.length; i++) {
+            if (e.dataTransfer.items[i].kind === 'file') return true;
+        }
+    }
+    return false;
+}
+
+document.addEventListener('dragover', function(e) {
+    if (isFileDrag(e)) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    }
+}, true);
+
+document.addEventListener('drop', function(e) {
+    var files = e.dataTransfer.files;
+    if (!files || !files.length) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    for (var i = 0; i < files.length; i++) {
+        (function(file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var b64 = e.target.result;
+                var commaIdx = b64.indexOf(',');
+                if (commaIdx >= 0) {
+                    b64 = b64.substring(commaIdx + 1);
+                }
+                send({
+                    type: 'upload_image',
+                    filename: file.name,
+                    data: b64
+                });
+            };
+            reader.readAsDataURL(file);
+        })(files[i]);
+    }
+});
+
 // ========== Init ==========
 
 connect();
