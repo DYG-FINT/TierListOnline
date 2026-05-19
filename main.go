@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 
+	"tlo/config"
 	"tlo/hub"
 )
 
@@ -33,7 +34,7 @@ func main() {
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFS))
 	mux.HandleFunc("/ws", h.HandleWS)
 
-	port := loadPort()
+	port := loadSettings()
 	log.Printf("Tier List 服务器启动于 http://127.0.0.1:%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
@@ -53,14 +54,23 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 type serverSettings struct {
-	Port int `json:"port"`
+	Port            int `json:"port"`
+	MaxUploadSizeMB int `json:"max_upload_size_mb"`
+	MaxImageWidth   int `json:"max_image_width"`
+	MaxImageHeight  int `json:"max_image_height"`
 }
 
-func loadPort() string {
+func loadSettings() string {
+	defaultSettings := serverSettings{
+		Port:            23331,
+		MaxUploadSizeMB: 10,
+		MaxImageWidth:   4096,
+		MaxImageHeight:  4096,
+	}
+
 	data, err := os.ReadFile("settings.json")
 	if err != nil {
 		if os.IsNotExist(err) {
-			defaultSettings := serverSettings{Port: 23331}
 			if d, e := json.MarshalIndent(defaultSettings, "", "  "); e == nil {
 				if e2 := os.WriteFile("settings.json", d, 0644); e2 != nil {
 					log.Printf("自动生成 settings.json 失败：%v", e2)
@@ -68,18 +78,37 @@ func loadPort() string {
 					log.Println("已自动生成 settings.json")
 				}
 			}
-			return "23331"
+			config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
+			config.MaxImageWidth = defaultSettings.MaxImageWidth
+			config.MaxImageHeight = defaultSettings.MaxImageHeight
+			return fmt.Sprintf("%d", defaultSettings.Port)
 		}
-		log.Printf("读取 settings.json 失败：%v，使用默认端口", err)
-		return "23331"
+		log.Printf("读取 settings.json 失败：%v，使用默认配置", err)
+		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
+		config.MaxImageWidth = defaultSettings.MaxImageWidth
+		config.MaxImageHeight = defaultSettings.MaxImageHeight
+		return fmt.Sprintf("%d", defaultSettings.Port)
 	}
+
 	var s serverSettings
-	if json.Unmarshal(data, &s) == nil && s.Port > 0 {
-		return fmt.Sprintf("%d", s.Port)
+	if e := json.Unmarshal(data, &s); e != nil || s.Port <= 0 {
+		log.Println("settings.json 格式无效，使用默认配置")
+		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
+		config.MaxImageWidth = defaultSettings.MaxImageWidth
+		config.MaxImageHeight = defaultSettings.MaxImageHeight
+		if port := os.Getenv("PORT"); port != "" {
+			return port
+		}
+		return fmt.Sprintf("%d", defaultSettings.Port)
 	}
-	log.Println("settings.json 格式无效，使用默认端口")
-	if port := os.Getenv("PORT"); port != "" {
-		return port
+
+	// Apply settings
+	config.MaxUploadSizeMB = s.MaxUploadSizeMB
+	if config.MaxUploadSizeMB <= 0 {
+		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
 	}
-	return "23331"
+	config.MaxImageWidth = s.MaxImageWidth
+	config.MaxImageHeight = s.MaxImageHeight
+
+	return fmt.Sprintf("%d", s.Port)
 }

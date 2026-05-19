@@ -166,6 +166,10 @@ function handleMessage(msg) {
                 }
             }
             break;
+
+        case 'upload_rejected':
+            alert(msg.error || '上传被拒绝');
+            break;
     }
 }
 

@@ -15,6 +15,12 @@ const (
 	MaxMsgSize = 10 * 1024 * 1024 // 10 MB
 )
 
+var (
+	MaxUploadSizeMB int
+	MaxImageWidth   int
+	MaxImageHeight  int
+)
+
 var ColorPalette = []string{
 	"#FF7F7F",
 	"#FFBF7F",

@@ -62,6 +62,9 @@ type Message struct {
 
 	// toggle_image_fit / image_fit_toggled
 	FitWidth bool `json:"fit_width,omitempty"`
+
+	// upload_rejected
+	Error string `json:"error,omitempty"`
 }
 
 type FullStateMsg struct {
