@@ -331,6 +331,17 @@ function renderCharacter(img, container) {
         send({type: 'toggle_image_fit', image_id: img.id});
     });
 
+    var pointerStart = null;
+    div.addEventListener('pointerdown', function(e) {
+        if (e.button === 0) pointerStart = {x: e.clientX, y: e.clientY};
+    });
+    div.addEventListener('pointerup', function(e) {
+        if (pointerStart && Math.abs(e.clientX - pointerStart.x) < 4 && Math.abs(e.clientY - pointerStart.y) < 4) {
+            openImageFullscreen(img.url);
+        }
+        pointerStart = null;
+    });
+
     var imgEl = document.createElement('img');
     imgEl.src = img.url;
     imgEl.alt = '';
@@ -847,6 +858,24 @@ document.addEventListener('drop', function(e) {
             };
             reader.readAsDataURL(file);
         })(files[i]);
+    }
+});
+
+// ========== Image Fullscreen ==========
+
+function openImageFullscreen(url) {
+    document.getElementById('image-fullscreen').src = url;
+    document.getElementById('image-overlay').classList.add('active');
+}
+
+function closeImageFullscreen(e) {
+    if (e && e.target !== document.getElementById('image-overlay')) return;
+    document.getElementById('image-overlay').classList.remove('active');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('image-overlay').classList.remove('active');
     }
 });
 
