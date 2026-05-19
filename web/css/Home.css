@@ -39,7 +39,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 90px;
+    min-height: 92px;
     height: 100%;
     border: 2px dashed #c44;
     border-radius: 6px;
@@ -60,7 +60,7 @@ h1 {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    min-height: 90px;
+    min-height: 92px;
     padding: 4px;
     border: 2px dashed #666;
     border-radius: 6px;
@@ -82,14 +82,14 @@ h1 {
 }
 .tier-row {
     display: flex;
-    min-height: 80px;
+    min-height: 89px;
     border-top: 1px solid #000;
 }
 .tier-row:last-child { border-bottom: 1px solid #000; }
 
 .label-holder {
     width: 100px;
-    min-height: 80px;
+    min-height: 89px;
     border-right: 1px solid #000;
     display: flex;
     align-items: center;
@@ -108,7 +108,7 @@ h1 {
 
 .tier.sort {
     flex: 1;
-    min-height: 80px;
+    min-height: 88px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -379,7 +379,7 @@ button:hover, .file-btn:hover { opacity: 0.85; }
     #tier-wrap, #bottom-area { max-width: 100%; }
     #bottom-area { flex-direction: column; }
     #delete-wrap { width: 100%; }
-    #delete-zone { min-height: 50px; }
+    #delete-zone { min-height: 62px; }
     .settings-control { width: 60px; flex-direction: column; }
     .label-holder { width: 70px; }
     h1 { font-size: 26px; }
