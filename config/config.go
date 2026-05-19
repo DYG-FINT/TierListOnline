@@ -16,9 +16,8 @@ const (
 )
 
 var (
-	MaxUploadSizeMB int
-	MaxImageWidth   int
-	MaxImageHeight  int
+	MaxUploadSizeMB  int
+	AllowedExtensions []string
 )
 
 var ColorPalette = []string{
@@ -55,9 +54,10 @@ func GenID() string {
 
 func FileExt(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
-	switch ext {
-	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
-		return ext
+	for _, allowed := range AllowedExtensions {
+		if ext == allowed {
+			return ext
+		}
 	}
 	return ".png"
 }

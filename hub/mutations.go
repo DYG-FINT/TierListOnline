@@ -1,14 +1,9 @@
 package hub
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 	"log"
 	"os"
 	"path/filepath"
@@ -208,22 +203,6 @@ func (h *Hub) uploadImage(filename, b64data string) ([]byte, []byte) {
 	// Check file size
 	if config.MaxUploadSizeMB > 0 && len(raw) > config.MaxUploadSizeMB*1024*1024 {
 		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: fmt.Sprintf("文件大小超过限制（最大 %d MB）", config.MaxUploadSizeMB)})
-		return nil, r
-	}
-
-	// Check image dimensions
-	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(raw))
-	if err != nil {
-		log.Printf("图片解码失败，无法读取尺寸：%v", err)
-		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: "无法读取图片信息，请确认文件为有效图片"})
-		return nil, r
-	}
-	if config.MaxImageWidth > 0 && imgCfg.Width > config.MaxImageWidth {
-		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: fmt.Sprintf("图片宽度超过限制（最大 %d px，当前 %d px）", config.MaxImageWidth, imgCfg.Width)})
-		return nil, r
-	}
-	if config.MaxImageHeight > 0 && imgCfg.Height > config.MaxImageHeight {
-		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: fmt.Sprintf("图片高度超过限制（最大 %d px，当前 %d px）", config.MaxImageHeight, imgCfg.Height)})
 		return nil, r
 	}
 

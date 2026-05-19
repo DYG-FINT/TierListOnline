@@ -54,18 +54,22 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 type serverSettings struct {
-	Port            int `json:"port"`
-	MaxUploadSizeMB int `json:"max_upload_size_mb"`
-	MaxImageWidth   int `json:"max_image_width"`
-	MaxImageHeight  int `json:"max_image_height"`
+	Port              int      `json:"port"`
+	MaxUploadSizeMB   int      `json:"max_upload_size_mb"`
+	AllowedExtensions []string `json:"allowed_extensions"`
 }
 
 func loadSettings() string {
 	defaultSettings := serverSettings{
 		Port:            23331,
 		MaxUploadSizeMB: 10,
-		MaxImageWidth:   4096,
-		MaxImageHeight:  4096,
+		AllowedExtensions: []string{
+			".png", ".jpg", ".jpeg", ".gif", ".webp",
+			".ico", ".bmp", ".svg", ".svgz",
+			".tiff", ".tif",
+			".avif", ".heic", ".heif",
+			".jp2", ".jpx", ".j2k", ".jxl",
+		},
 	}
 
 	data, err := os.ReadFile("settings.json")
@@ -78,37 +82,42 @@ func loadSettings() string {
 					log.Println("已自动生成 settings.json")
 				}
 			}
-			config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
-			config.MaxImageWidth = defaultSettings.MaxImageWidth
-			config.MaxImageHeight = defaultSettings.MaxImageHeight
+			applySettings(defaultSettings)
 			return fmt.Sprintf("%d", defaultSettings.Port)
 		}
 		log.Printf("读取 settings.json 失败：%v，使用默认配置", err)
-		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
-		config.MaxImageWidth = defaultSettings.MaxImageWidth
-		config.MaxImageHeight = defaultSettings.MaxImageHeight
+		applySettings(defaultSettings)
 		return fmt.Sprintf("%d", defaultSettings.Port)
 	}
 
 	var s serverSettings
 	if e := json.Unmarshal(data, &s); e != nil || s.Port <= 0 {
 		log.Println("settings.json 格式无效，使用默认配置")
-		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
-		config.MaxImageWidth = defaultSettings.MaxImageWidth
-		config.MaxImageHeight = defaultSettings.MaxImageHeight
+		applySettings(defaultSettings)
 		if port := os.Getenv("PORT"); port != "" {
 			return port
 		}
 		return fmt.Sprintf("%d", defaultSettings.Port)
 	}
 
-	// Apply settings
+	applySettings(s)
+	return fmt.Sprintf("%d", s.Port)
+}
+
+func applySettings(s serverSettings) {
 	config.MaxUploadSizeMB = s.MaxUploadSizeMB
 	if config.MaxUploadSizeMB <= 0 {
-		config.MaxUploadSizeMB = defaultSettings.MaxUploadSizeMB
+		config.MaxUploadSizeMB = 10
 	}
-	config.MaxImageWidth = s.MaxImageWidth
-	config.MaxImageHeight = s.MaxImageHeight
-
-	return fmt.Sprintf("%d", s.Port)
+	if len(s.AllowedExtensions) > 0 {
+		config.AllowedExtensions = s.AllowedExtensions
+	} else {
+		config.AllowedExtensions = []string{
+			".png", ".jpg", ".jpeg", ".gif", ".webp",
+			".ico", ".bmp", ".svg", ".svgz",
+			".tiff", ".tif",
+			".avif", ".heic", ".heif",
+			".jp2", ".jpx", ".j2k", ".jxl",
+		}
+	}
 }
