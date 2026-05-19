@@ -1,0 +1,440 @@
+package hub
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
+
+	"tlo/config"
+	"tlo/models"
+)
+
+func (h *Hub) setTitle(title string) []byte {
+	h.mu.Lock()
+	h.state.Title = title
+	h.mu.Unlock()
+	h.saveState()
+	b, _ := json.Marshal(models.Message{Type: "title_updated", Title: title})
+	return b
+}
+
+func (h *Hub) setBgColor(color string) []byte {
+	h.mu.Lock()
+	h.state.BgColor = color
+	h.mu.Unlock()
+	h.saveState()
+	b, _ := json.Marshal(models.Message{Type: "bg_color_updated", Color: color})
+	return b
+}
+
+func (h *Hub) resetState() []byte {
+	h.mu.Lock()
+	for _, row := range h.state.Rows {
+		for _, img := range row.Images {
+			os.Remove(filepath.Join(config.UploadDir, img.Filename))
+		}
+	}
+	for _, img := range h.state.StagingImages {
+		os.Remove(filepath.Join(config.UploadDir, img.Filename))
+	}
+
+	rows := make([]models.TierRow, len(config.DefaultRows))
+	for i, r := range config.DefaultRows {
+		rows[i] = models.TierRow{
+			ID:     config.GenID(),
+			Label:  r.Label,
+			Color:  r.Color,
+			Images: []models.ImageItem{},
+		}
+	}
+	h.state = &models.TierList{
+		Title:         "从夯到拉锐评",
+		BgColor:       "#1a1a1a",
+		Rows:          rows,
+		StagingImages: []models.ImageItem{},
+	}
+	h.mu.Unlock()
+	h.saveState()
+	return h.buildFullState()
+}
+
+func (h *Hub) updateLabel(rowID, label string) []byte {
+	h.mu.Lock()
+	for i := range h.state.Rows {
+		if h.state.Rows[i].ID == rowID {
+			h.state.Rows[i].Label = label
+			break
+		}
+	}
+	h.mu.Unlock()
+	h.saveState()
+	b, _ := json.Marshal(models.Message{Type: "label_updated", RowID: rowID, Label: label})
+	return b
+}
+
+func (h *Hub) updateLabelColor(rowID, color string) []byte {
+	h.mu.Lock()
+	for i := range h.state.Rows {
+		if h.state.Rows[i].ID == rowID {
+			h.state.Rows[i].Color = color
+			break
+		}
+	}
+	h.mu.Unlock()
+	h.saveState()
+	b, _ := json.Marshal(models.Message{Type: "label_color_updated", RowID: rowID, Color: color})
+	return b
+}
+
+func (h *Hub) addRow(position, relativeID string) []byte {
+	h.mu.Lock()
+	newRow := models.TierRow{
+		ID:     config.GenID(),
+		Label:  "?",
+		Color:  "#858585",
+		Images: []models.ImageItem{},
+	}
+
+	idx := -1
+	for i, r := range h.state.Rows {
+		if r.ID == relativeID {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		h.state.Rows = append(h.state.Rows, newRow)
+	} else if position == "above" {
+		h.state.Rows = append(h.state.Rows[:idx], append([]models.TierRow{newRow}, h.state.Rows[idx:]...)...)
+	} else {
+		h.state.Rows = append(h.state.Rows[:idx+1], append([]models.TierRow{newRow}, h.state.Rows[idx+1:]...)...)
+	}
+
+	rowsCopy := make([]models.TierRow, len(h.state.Rows))
+	copy(rowsCopy, h.state.Rows)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "row_added", Row: &newRow, Rows: rowsCopy})
+	return b
+}
+
+func (h *Hub) deleteRow(rowID string) []byte {
+	h.mu.Lock()
+	if len(h.state.Rows) <= 1 {
+		h.mu.Unlock()
+		return nil
+	}
+	var movedImages []models.ImageItem
+	var newRows []models.TierRow
+	for _, r := range h.state.Rows {
+		if r.ID == rowID {
+			movedImages = r.Images
+			h.state.StagingImages = append(h.state.StagingImages, r.Images...)
+		} else {
+			newRows = append(newRows, r)
+		}
+	}
+	h.state.Rows = newRows
+	stagingCopy := make([]models.ImageItem, len(movedImages))
+	copy(stagingCopy, movedImages)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "row_deleted", RowID: rowID, StagingImages: stagingCopy})
+	return b
+}
+
+func (h *Hub) clearRow(rowID string) []byte {
+	h.mu.Lock()
+	var movedImages []models.ImageItem
+	for i := range h.state.Rows {
+		if h.state.Rows[i].ID == rowID {
+			movedImages = make([]models.ImageItem, len(h.state.Rows[i].Images))
+			copy(movedImages, h.state.Rows[i].Images)
+			h.state.StagingImages = append(h.state.StagingImages, h.state.Rows[i].Images...)
+			h.state.Rows[i].Images = []models.ImageItem{}
+			break
+		}
+	}
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "row_cleared", RowID: rowID, StagingImages: movedImages})
+	return b
+}
+
+func (h *Hub) moveRow(rowID, direction string) []byte {
+	h.mu.Lock()
+	idx := -1
+	for i, r := range h.state.Rows {
+		if r.ID == rowID {
+			idx = i
+			break
+		}
+	}
+	if idx >= 0 {
+		if direction == "up" && idx > 0 {
+			h.state.Rows[idx], h.state.Rows[idx-1] = h.state.Rows[idx-1], h.state.Rows[idx]
+		} else if direction == "down" && idx < len(h.state.Rows)-1 {
+			h.state.Rows[idx], h.state.Rows[idx+1] = h.state.Rows[idx+1], h.state.Rows[idx]
+		}
+	}
+	rowsCopy := make([]models.TierRow, len(h.state.Rows))
+	copy(rowsCopy, h.state.Rows)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "rows_reordered", Rows: rowsCopy})
+	return b
+}
+
+func (h *Hub) uploadImage(filename, b64data string) []byte {
+	raw, err := base64.StdEncoding.DecodeString(b64data)
+	if err != nil {
+		log.Printf("Base64图片解码失败：%v", err)
+		return nil
+	}
+
+	ext := config.FileExt(filename)
+	id := config.GenID()
+	savedName := id + ext
+	savePath := filepath.Join(config.UploadDir, savedName)
+
+	if err := os.WriteFile(savePath, raw, 0644); err != nil {
+		log.Printf("图片文件写入失败：%v", err)
+		return nil
+	}
+
+	img := models.ImageItem{
+		ID:       id,
+		Filename: savedName,
+		URL:      "/uploads/" + savedName,
+	}
+
+	h.mu.Lock()
+	h.state.StagingImages = append(h.state.StagingImages, img)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "image_uploaded", Image: &img})
+	return b
+}
+
+func (h *Hub) moveImage(imageID, targetRowID string, targetIndex int) []byte {
+	h.mu.Lock()
+	var movedImg models.ImageItem
+	found := false
+
+	for i := range h.state.Rows {
+		for j, img := range h.state.Rows[i].Images {
+			if img.ID == imageID {
+				movedImg = img
+				h.state.Rows[i].Images = append(h.state.Rows[i].Images[:j], h.state.Rows[i].Images[j+1:]...)
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for j, img := range h.state.StagingImages {
+			if img.ID == imageID {
+				movedImg = img
+				h.state.StagingImages = append(h.state.StagingImages[:j], h.state.StagingImages[j+1:]...)
+				found = true
+				break
+			}
+		}
+	}
+
+	if !found {
+		h.mu.Unlock()
+		return nil
+	}
+
+	if targetRowID == "" || targetRowID == "null" {
+		if targetIndex < 0 || targetIndex >= len(h.state.StagingImages) {
+			h.state.StagingImages = append(h.state.StagingImages, movedImg)
+		} else {
+			h.state.StagingImages = append(
+				h.state.StagingImages[:targetIndex],
+				append([]models.ImageItem{movedImg}, h.state.StagingImages[targetIndex:]...)...,
+			)
+		}
+	} else {
+		for i := range h.state.Rows {
+			if h.state.Rows[i].ID == targetRowID {
+				if targetIndex < 0 || targetIndex >= len(h.state.Rows[i].Images) {
+					h.state.Rows[i].Images = append(h.state.Rows[i].Images, movedImg)
+				} else {
+					h.state.Rows[i].Images = append(
+						h.state.Rows[i].Images[:targetIndex],
+						append([]models.ImageItem{movedImg}, h.state.Rows[i].Images[targetIndex:]...)...,
+					)
+				}
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{
+		Type:        "image_moved",
+		ImageID:     imageID,
+		TargetRowID: targetRowID,
+		TargetIndex: targetIndex,
+	})
+	return b
+}
+
+func (h *Hub) deleteImage(imageID string) []byte {
+	h.mu.Lock()
+	var deletedFilename string
+	found := false
+
+	for i := range h.state.Rows {
+		for j, img := range h.state.Rows[i].Images {
+			if img.ID == imageID {
+				deletedFilename = img.Filename
+				h.state.Rows[i].Images = append(h.state.Rows[i].Images[:j], h.state.Rows[i].Images[j+1:]...)
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for j, img := range h.state.StagingImages {
+			if img.ID == imageID {
+				deletedFilename = img.Filename
+				h.state.StagingImages = append(h.state.StagingImages[:j], h.state.StagingImages[j+1:]...)
+				found = true
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if found {
+		os.Remove(filepath.Join(config.UploadDir, deletedFilename))
+		h.saveState()
+	}
+
+	b, _ := json.Marshal(models.Message{Type: "image_deleted", ImageID: imageID})
+	return b
+}
+
+func (h *Hub) stageAll() []byte {
+	h.mu.Lock()
+	for i := range h.state.Rows {
+		h.state.StagingImages = append(h.state.StagingImages, h.state.Rows[i].Images...)
+		h.state.Rows[i].Images = []models.ImageItem{}
+	}
+	stagingCopy := make([]models.ImageItem, len(h.state.StagingImages))
+	copy(stagingCopy, h.state.StagingImages)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "all_staged", StagingImages: stagingCopy})
+	return b
+}
+
+func (h *Hub) applyColorSequence(rowID string) []byte {
+	h.mu.Lock()
+	startIdx := -1
+	for i, r := range h.state.Rows {
+		if r.ID == rowID {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx == -1 || startIdx >= len(h.state.Rows)-1 {
+		h.mu.Unlock()
+		return nil
+	}
+
+	currentColor := h.state.Rows[startIdx].Color
+	paletteIdx := -1
+	for i, c := range config.ColorPalette {
+		if c == currentColor {
+			paletteIdx = i
+			break
+		}
+	}
+
+	for i := startIdx + 1; i < len(h.state.Rows); i++ {
+		paletteIdx++
+		if paletteIdx >= len(config.ColorPalette) {
+			paletteIdx = 0
+		}
+		h.state.Rows[i].Color = config.ColorPalette[paletteIdx]
+	}
+
+	rowsCopy := make([]models.TierRow, len(h.state.Rows))
+	copy(rowsCopy, h.state.Rows)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "color_sequence_applied", Rows: rowsCopy})
+	return b
+}
+
+func (h *Hub) handleMessage(_ *Client, raw []byte) {
+	var msg models.Message
+	if err := json.Unmarshal(raw, &msg); err != nil {
+		log.Printf("消息解析失败：%v", err)
+		return
+	}
+
+	var broadcast []byte
+
+	switch msg.Type {
+	case "set_title":
+		broadcast = h.setTitle(msg.Title)
+	case "update_label":
+		broadcast = h.updateLabel(msg.RowID, msg.Label)
+	case "update_label_color":
+		broadcast = h.updateLabelColor(msg.RowID, msg.Color)
+	case "add_row":
+		broadcast = h.addRow(msg.Position, msg.RelativeToRowID)
+	case "delete_row":
+		broadcast = h.deleteRow(msg.RowID)
+	case "clear_row":
+		broadcast = h.clearRow(msg.RowID)
+	case "move_row":
+		broadcast = h.moveRow(msg.RowID, msg.Direction)
+	case "upload_image":
+		broadcast = h.uploadImage(msg.Filename, msg.Data)
+		if broadcast == nil {
+			return
+		}
+	case "move_image":
+		broadcast = h.moveImage(msg.ImageID, msg.TargetRowID, msg.TargetIndex)
+		if broadcast == nil {
+			return
+		}
+	case "delete_image":
+		broadcast = h.deleteImage(msg.ImageID)
+	case "reset":
+		broadcast = h.resetState()
+	case "stage_all":
+		broadcast = h.stageAll()
+	case "apply_color_sequence":
+		broadcast = h.applyColorSequence(msg.RowID)
+	default:
+		log.Printf("未知消息类型：%s", msg.Type)
+		return
+	}
+
+	if broadcast != nil {
+		h.broadcast <- broadcast
+	}
+}

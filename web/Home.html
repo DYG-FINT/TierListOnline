@@ -34,6 +34,7 @@
             <input id="file-input" type="file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/ico, image/x-icon, image/vnd.microsoft.icon, image/bmp, image/svg+xml, image/tiff, image/avif, image/heic, image/heif, image/jp2, image/jxl" multiple style="display:none;">
         </label>
         <button id="color-picker-link" onclick="toggleBgColorPicker()">更改背景颜色</button>
+        <button id="stage-all-btn" class="reset-button">全部放入暂存区<span id="stage-all-progress" class="reset-progress"></span></button>
         <button id="reset-btn" class="reset-button">重置<span id="reset-progress" class="reset-progress"></span></button>
     </div>
 
@@ -87,7 +88,7 @@
                 <button id="clear-row" onclick="clearRow()">放入暂放区</button>
             </div>
             <div class="modal-buttons">
-                <button id="add-row-up" onclick="addRow('above')">在上方插入行</button>
+                <button id="add-row-up" onclick="applyColorSequence()">向下顺序填充颜色</button>
                 <button id="add-row-below" onclick="addRow('below')">在下方插入行</button>
             </div>
         </div>

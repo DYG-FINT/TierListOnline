@@ -1,0 +1,85 @@
+package main
+
+import (
+	"embed"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+
+	"tlo/hub"
+)
+
+//go:embed web
+var embeddedWeb embed.FS
+
+func main() {
+	h := hub.NewHub()
+	h.LoadState()
+	go h.Run()
+
+	cssSub, _ := fs.Sub(embeddedWeb, "web/css")
+	jsSub, _ := fs.Sub(embeddedWeb, "web/js")
+	cssFS := http.FileServer(http.FS(cssSub))
+	jsFS := http.FileServer(http.FS(jsSub))
+	uploadsFS := http.FileServer(http.Dir("storage/uploads"))
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serveHome)
+	mux.Handle("/css/", http.StripPrefix("/css/", cssFS))
+	mux.Handle("/js/", http.StripPrefix("/js/", jsFS))
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFS))
+	mux.HandleFunc("/ws", h.HandleWS)
+
+	port := loadPort()
+	log.Printf("Tier List 服务器启动于 http://127.0.0.1:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
+}
+
+func serveHome(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := embeddedWeb.ReadFile("web/Home.html")
+	if err != nil {
+		http.Error(w, "页面未找到", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+
+type serverSettings struct {
+	Port int `json:"port"`
+}
+
+func loadPort() string {
+	data, err := os.ReadFile("settings.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			defaultSettings := serverSettings{Port: 23331}
+			if d, e := json.MarshalIndent(defaultSettings, "", "  "); e == nil {
+				if e2 := os.WriteFile("settings.json", d, 0644); e2 != nil {
+					log.Printf("自动生成 settings.json 失败：%v", e2)
+				} else {
+					log.Println("已自动生成 settings.json")
+				}
+			}
+			return "23331"
+		}
+		log.Printf("读取 settings.json 失败：%v，使用默认端口", err)
+		return "23331"
+	}
+	var s serverSettings
+	if json.Unmarshal(data, &s) == nil && s.Port > 0 {
+		return fmt.Sprintf("%d", s.Port)
+	}
+	log.Println("settings.json 格式无效，使用默认端口")
+	if port := os.Getenv("PORT"); port != "" {
+		return port
+	}
+	return "23331"
+}

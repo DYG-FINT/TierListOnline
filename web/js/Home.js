@@ -127,13 +127,31 @@ function handleMessage(msg) {
             break;
 
         case 'image_moved':
-            moveImageInState(msg.image_id, msg.target_row_id, msg.position);
-            moveImageDOM(msg.image_id, msg.target_row_id, msg.position);
+            moveImageInState(msg.image_id, msg.target_row_id, msg.target_index);
+            moveImageDOM(msg.image_id, msg.target_row_id, msg.target_index);
             break;
 
         case 'image_deleted':
             removeImageFromState(msg.image_id);
             removeImageDOM(msg.image_id);
+            break;
+
+        case 'all_staged':
+            // Move all images from rows to staging
+            for (var i = 0; i < state.rows.length; i++) {
+                state.rows[i].images = [];
+            }
+            state.staging_images = msg.staging_images;
+            moveAllImagesToStaging();
+            renderStaging();
+            break;
+
+        case 'color_sequence_applied':
+            state.rows = msg.rows;
+            // Update label holder colors in DOM without rebuilding
+            for (var i = 0; i < msg.rows.length; i++) {
+                updateLabelColorDOM(msg.rows[i].id, msg.rows[i].color);
+            }
             break;
     }
 }
@@ -368,6 +386,17 @@ function moveImagesToStaging(rowId) {
     }
 }
 
+function moveAllImagesToStaging() {
+    var staging = document.getElementById('staging-area');
+    var rows = document.querySelectorAll('.tier-row');
+    for (var i = 0; i < rows.length; i++) {
+        var images = rows[i].querySelectorAll('.tier.sort .character');
+        for (var j = 0; j < images.length; j++) {
+            staging.appendChild(images[j]);
+        }
+    }
+}
+
 function highlightBgSwatch(color) {
     var swatches = document.querySelectorAll('#backgroundcolorselect span');
     for (var i = 0; i < swatches.length; i++) {
@@ -463,6 +492,12 @@ function addRow(position) {
     closeModal();
 }
 
+function applyColorSequence() {
+    if (!activeRowId) return;
+    send({type: 'apply_color_sequence', row_id: activeRowId});
+    closeModal();
+}
+
 // ========== Title Sync ==========
 
 document.querySelector('h1').addEventListener('input', function() {
@@ -539,7 +574,7 @@ function handleSortDrop(e) {
         type: 'move_image',
         image_id: dragImageId,
         target_row_id: targetRowId || 'null',
-        position: position
+        target_index: position
     });
 
     // Optimistic: move the element immediately
@@ -567,7 +602,7 @@ function handleStagingDrop(e) {
         type: 'move_image',
         image_id: dragImageId,
         target_row_id: 'null',
-        position: position
+        target_index: position
     });
 
     if (currentParent && !isSame) {
@@ -700,6 +735,48 @@ if (resetBtn) {
     resetBtn.addEventListener('touchstart', startReset);
     resetBtn.addEventListener('touchend', cancelReset);
     resetBtn.addEventListener('touchcancel', cancelReset);
+}
+
+// ========== Stage All Button ==========
+
+var stageAllTimer = null;
+var stageAllBtn = document.getElementById('stage-all-btn');
+var stageAllProgress = document.getElementById('stage-all-progress');
+
+function startStageAll(e) {
+    e.preventDefault();
+    if (stageAllTimer) return;
+    stageAllBtn.classList.add('resetting');
+    stageAllProgress.style.animation = 'none';
+    stageAllProgress.offsetHeight;
+    stageAllProgress.style.animation = 'reset-fill 3s linear forwards';
+    stageAllTimer = setTimeout(triggerStageAll, 3000);
+}
+
+function cancelStageAll() {
+    if (!stageAllTimer) return;
+    clearTimeout(stageAllTimer);
+    stageAllTimer = null;
+    stageAllBtn.classList.remove('resetting');
+    stageAllProgress.style.animation = 'none';
+}
+
+function triggerStageAll() {
+    stageAllTimer = null;
+    stageAllBtn.classList.remove('resetting');
+    stageAllBtn.classList.add('reset-done');
+    stageAllProgress.style.animation = 'none';
+    setTimeout(function() { stageAllBtn.classList.remove('reset-done'); }, 600);
+    send({type: 'stage_all'});
+}
+
+if (stageAllBtn) {
+    stageAllBtn.addEventListener('mousedown', startStageAll);
+    stageAllBtn.addEventListener('mouseup', cancelStageAll);
+    stageAllBtn.addEventListener('mouseleave', cancelStageAll);
+    stageAllBtn.addEventListener('touchstart', startStageAll);
+    stageAllBtn.addEventListener('touchend', cancelStageAll);
+    stageAllBtn.addEventListener('touchcancel', cancelStageAll);
 }
 
 // ========== Init ==========
