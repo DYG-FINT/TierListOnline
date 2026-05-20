@@ -201,8 +201,9 @@ func (h *Hub) uploadImage(filename, b64data string) ([]byte, []byte) {
 	}
 
 	// Check file size
-	if config.MaxUploadSizeMB > 0 && len(raw) > config.MaxUploadSizeMB*1024*1024 {
-		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: fmt.Sprintf("文件大小超过限制（最大 %d MB）", config.MaxUploadSizeMB)})
+	maxSize := config.GetMaxUploadSizeMB()
+	if maxSize > 0 && len(raw) > maxSize*1024*1024 {
+		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: fmt.Sprintf("文件大小超过限制（最大 %d MB）", maxSize)})
 		return nil, r
 	}
 
@@ -444,6 +445,22 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 	if err := json.Unmarshal(raw, &msg); err != nil {
 		log.Printf("消息解析失败：%v", err)
 		return
+	}
+
+	if config.GetServerMode() == config.ModeSort && !config.IsWhitelistIP(client.IP) {
+		if msg.Type != "move_image" && msg.Type != "toggle_image_fit" {
+			log.Printf("仅排序模式：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
+			reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "当前为仅排序模式，您没有权限执行此操作"})
+			select {
+			case client.send <- reject:
+			default:
+			}
+			select {
+			case client.send <- h.buildFullState():
+			default:
+			}
+			return
+		}
 	}
 
 	var broadcast []byte

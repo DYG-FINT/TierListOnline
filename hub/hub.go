@@ -3,7 +3,9 @@ package hub
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +28,7 @@ type Client struct {
 	hub  *Hub
 	conn *websocket.Conn
 	send chan []byte
+	IP   string
 }
 
 func NewHub() *Hub {
@@ -43,14 +46,14 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-			log.Printf("客户端已连接，当前在线：%d", len(h.clients))
+			log.Printf("客户端 %s 已连接，当前在线：%d", client.IP, len(h.clients))
 
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
-			log.Printf("客户端已断开，当前在线：%d", len(h.clients))
+			log.Printf("客户端 %s 已断开，当前在线：%d", client.IP, len(h.clients))
 
 		case msg := <-h.broadcast:
 			for client := range h.clients {
@@ -87,6 +90,20 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func getClientIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		return strings.TrimSpace(strings.Split(fwd, ",")[0])
+	}
+	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+		return strings.TrimSpace(realIP)
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
 func (h *Hub) HandleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -98,6 +115,7 @@ func (h *Hub) HandleWS(w http.ResponseWriter, r *http.Request) {
 		hub:  h,
 		conn: conn,
 		send: make(chan []byte, 256),
+		IP:   getClientIP(r),
 	}
 
 	h.register <- client

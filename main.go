@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"tlo/config"
 	"tlo/hub"
@@ -35,6 +36,7 @@ func main() {
 	mux.HandleFunc("/ws", h.HandleWS)
 
 	port := loadSettings()
+	go watchSettings()
 	log.Printf("Tier List 服务器启动于 http://127.0.0.1:%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
@@ -57,6 +59,8 @@ type serverSettings struct {
 	Port              int      `json:"port"`
 	MaxUploadSizeMB   int      `json:"max_upload_size_mb"`
 	AllowedExtensions []string `json:"allowed_extensions"`
+	Mode              string   `json:"mode"`
+	WhitelistIPs      []string `json:"whitelist_ips"`
 }
 
 func loadSettings() string {
@@ -70,6 +74,8 @@ func loadSettings() string {
 			".avif", ".heic", ".heif",
 			".jp2", ".jpx", ".j2k", ".jxl",
 		},
+		Mode:         config.ModeFree,
+		WhitelistIPs: []string{"127.0.0.1"},
 	}
 
 	data, err := os.ReadFile("settings.json")
@@ -105,19 +111,39 @@ func loadSettings() string {
 }
 
 func applySettings(s serverSettings) {
-	config.MaxUploadSizeMB = s.MaxUploadSizeMB
-	if config.MaxUploadSizeMB <= 0 {
-		config.MaxUploadSizeMB = 10
+	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.Mode, s.WhitelistIPs)
+}
+
+func watchSettings() {
+	var lastMod time.Time
+	if info, err := os.Stat("settings.json"); err == nil {
+		lastMod = info.ModTime()
 	}
-	if len(s.AllowedExtensions) > 0 {
-		config.AllowedExtensions = s.AllowedExtensions
-	} else {
-		config.AllowedExtensions = []string{
-			".png", ".jpg", ".jpeg", ".gif", ".webp",
-			".ico", ".bmp", ".svg", ".svgz",
-			".tiff", ".tif",
-			".avif", ".heic", ".heif",
-			".jp2", ".jpx", ".j2k", ".jxl",
+
+	for {
+		time.Sleep(2 * time.Second)
+		info, err := os.Stat("settings.json")
+		if err != nil {
+			continue
 		}
+		if !info.ModTime().After(lastMod) {
+			continue
+		}
+		lastMod = info.ModTime()
+
+		data, err := os.ReadFile("settings.json")
+		if err != nil {
+			log.Printf("热重载 settings.json 失败（读取）：%v", err)
+			continue
+		}
+
+		var s serverSettings
+		if err := json.Unmarshal(data, &s); err != nil {
+			log.Printf("热重载 settings.json 失败（解析）：%v", err)
+			continue
+		}
+
+		applySettings(s)
+		log.Printf("settings.json 已热重载（模式：%s，白名单IP数：%d）", s.Mode, len(s.WhitelistIPs))
 	}
 }

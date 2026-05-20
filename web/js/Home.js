@@ -167,6 +167,10 @@ function handleMessage(msg) {
             }
             break;
 
+        case 'action_rejected':
+            alert(msg.error || '操作被拒绝');
+            break;
+
         case 'upload_rejected':
             alert(msg.error || '上传被拒绝');
             break;
