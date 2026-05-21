@@ -267,26 +267,13 @@ func (h *Hub) moveImage(imageID, targetRowID string, targetIndex int) []byte {
 		return nil
 	}
 
+	// Always append to end
 	if targetRowID == "" || targetRowID == "null" {
-		if targetIndex < 0 || targetIndex >= len(h.state.StagingImages) {
-			h.state.StagingImages = append(h.state.StagingImages, movedImg)
-		} else {
-			h.state.StagingImages = append(
-				h.state.StagingImages[:targetIndex],
-				append([]models.ImageItem{movedImg}, h.state.StagingImages[targetIndex:]...)...,
-			)
-		}
+		h.state.StagingImages = append(h.state.StagingImages, movedImg)
 	} else {
 		for i := range h.state.Rows {
 			if h.state.Rows[i].ID == targetRowID {
-				if targetIndex < 0 || targetIndex >= len(h.state.Rows[i].Images) {
-					h.state.Rows[i].Images = append(h.state.Rows[i].Images, movedImg)
-				} else {
-					h.state.Rows[i].Images = append(
-						h.state.Rows[i].Images[:targetIndex],
-						append([]models.ImageItem{movedImg}, h.state.Rows[i].Images[targetIndex:]...)...,
-					)
-				}
+				h.state.Rows[i].Images = append(h.state.Rows[i].Images, movedImg)
 				break
 			}
 		}

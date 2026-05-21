@@ -127,8 +127,8 @@ function handleMessage(msg) {
             break;
 
         case 'image_moved':
-            moveImageInState(msg.image_id, msg.target_row_id, msg.target_index);
-            moveImageDOM(msg.image_id, msg.target_row_id, msg.target_index);
+            moveImageInState(msg.image_id, msg.target_row_id);
+            moveImageDOM(msg.image_id, msg.target_row_id);
             break;
 
         case 'image_deleted':
@@ -200,7 +200,7 @@ function findImageInState(imageId) {
     return null;
 }
 
-function moveImageInState(imageId, targetRowId, position) {
+function moveImageInState(imageId, targetRowId) {
     var img = null;
     // Remove from source
     for (var i = 0; i < state.rows.length; i++) {
@@ -224,21 +224,13 @@ function moveImageInState(imageId, targetRowId, position) {
     }
     if (!img) return;
 
-    // Insert at target
+    // Always append to end
     if (!targetRowId || targetRowId === 'null') {
-        if (position < 0 || position >= state.staging_images.length) {
-            state.staging_images.push(img);
-        } else {
-            state.staging_images.splice(position, 0, img);
-        }
+        state.staging_images.push(img);
     } else {
         for (var i = 0; i < state.rows.length; i++) {
             if (state.rows[i].id === targetRowId) {
-                if (position < 0 || position >= state.rows[i].images.length) {
-                    state.rows[i].images.push(img);
-                } else {
-                    state.rows[i].images.splice(position, 0, img);
-                }
+                state.rows[i].images.push(img);
                 break;
             }
         }
@@ -395,7 +387,7 @@ function updateLabelColorDOM(rowId, color) {
     }
 }
 
-function moveImageDOM(imageId, targetRowId, position) {
+function moveImageDOM(imageId, targetRowId) {
     var el = document.querySelector('.character[data-image-id="' + imageId + '"]');
     if (!el) return;
 
@@ -408,12 +400,7 @@ function moveImageDOM(imageId, targetRowId, position) {
         target = row.querySelector('.tier.sort');
     }
 
-    var children = target.querySelectorAll('.character');
-    if (position < 0 || position >= children.length) {
-        target.appendChild(el);
-    } else {
-        target.insertBefore(el, children[position]);
-    }
+    target.appendChild(el);
 }
 
 function moveImagesToStaging(rowId) {
@@ -598,7 +585,7 @@ function allowDrop(e) {
     e.dataTransfer.dropEffect = 'move';
 }
 
-// Drop on tier row sort zone
+// Drop on tier row sort zone (always append to end)
 function handleSortDrop(e) {
     e.preventDefault();
     this.classList.remove('drag-over');
@@ -606,7 +593,6 @@ function handleSortDrop(e) {
 
     var targetRow = this.closest('.tier-row');
     var targetRowId = targetRow ? targetRow.getAttribute('data-row-id') : null;
-    var position = computeDropIndex(this, e.clientX, e.clientY);
     var currentParent = document.querySelector('.character[data-image-id="' + dragImageId + '"]');
     var isSame = currentParent && currentParent.parentElement === this;
 
@@ -614,27 +600,20 @@ function handleSortDrop(e) {
         type: 'move_image',
         image_id: dragImageId,
         target_row_id: targetRowId || 'null',
-        target_index: position
+        target_index: -1
     });
 
-    // Optimistic: move the element immediately
     if (currentParent && !isSame) {
-        var children = this.querySelectorAll('.character');
-        if (position < 0 || position >= children.length) {
-            this.appendChild(currentParent);
-        } else {
-            this.insertBefore(currentParent, children[position]);
-        }
+        this.appendChild(currentParent);
     }
 }
 
-// Drop on staging area
+// Drop on staging area (always append to end)
 function handleStagingDrop(e) {
     e.preventDefault();
     this.classList.remove('drag-over');
     if (!dragImageId) return;
 
-    var position = computeDropIndex(this, e.clientX, e.clientY);
     var currentParent = document.querySelector('.character[data-image-id="' + dragImageId + '"]');
     var isSame = currentParent && currentParent.parentElement === this;
 
@@ -642,35 +621,12 @@ function handleStagingDrop(e) {
         type: 'move_image',
         image_id: dragImageId,
         target_row_id: 'null',
-        target_index: position
+        target_index: -1
     });
 
     if (currentParent && !isSame) {
-        var children = this.querySelectorAll('.character');
-        if (position < 0 || position >= children.length) {
-            this.appendChild(currentParent);
-        } else {
-            this.insertBefore(currentParent, children[position]);
-        }
+        this.appendChild(currentParent);
     }
-}
-
-function computeDropIndex(container, clientX, clientY) {
-    var chars = container.querySelectorAll('.character');
-    var idx = 0;
-    for (var i = 0; i < chars.length; i++) {
-        var rect = chars[i].getBoundingClientRect();
-        var midX = rect.left + rect.width / 2;
-        var midY = rect.top + rect.height / 2;
-        if (clientX < midX && clientY < midY + rect.height / 2) {
-            return i;
-        }
-        if (clientX < midX) {
-            return i;
-        }
-        idx = i + 1;
-    }
-    return idx;
 }
 
 // Delete zone
