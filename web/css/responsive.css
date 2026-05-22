@@ -1,0 +1,10 @@
+/* Responsive */
+@media (max-width: 480px) {
+    #tier-wrap, #bottom-area { max-width: 100%; }
+    #bottom-area { flex-direction: column; }
+    #delete-wrap { width: 100%; }
+    #delete-zone { min-height: 62px; }
+    .settings-control { width: 60px; flex-direction: column; }
+    .label-holder { width: 70px; }
+    h1 { font-size: 26px; }
+}

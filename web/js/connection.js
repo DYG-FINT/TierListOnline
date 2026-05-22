@@ -1,0 +1,163 @@
+// ========== WebSocket ==========
+
+let ws = null;
+let reconnectDelay = 1000;
+let reconnectTimer = null;
+
+function connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = protocol + '//' + location.host + '/ws';
+    ws = new WebSocket(url);
+
+    ws.onopen = function() {
+        console.log('WebSocket connected');
+        updateStatus(true);
+        reconnectDelay = 1000;
+    };
+
+    ws.onmessage = function(e) {
+        handleMessage(JSON.parse(e.data));
+    };
+
+    ws.onclose = function() {
+        console.log('WebSocket disconnected');
+        updateStatus(false);
+        scheduleReconnect();
+    };
+
+    ws.onerror = function() {
+        ws.close();
+    };
+}
+
+function scheduleReconnect() {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(function() {
+        console.log('Reconnecting...');
+        connect();
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+    }, reconnectDelay);
+}
+
+function send(msg) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+    }
+}
+
+function updateStatus(online) {
+    var dot = document.getElementById('conn-status');
+    if (!dot) return;
+    dot.style.background = online ? '#4f4' : '#f44';
+    dot.title = online ? '已连接' : '已断开';
+}
+
+// ========== Message Handler ==========
+
+function handleMessage(msg) {
+    switch (msg.type) {
+        case 'full_state':
+            state.title = msg.title;
+            state.rows = msg.rows;
+            state.staging_images = msg.staging_images;
+            renderAll();
+            break;
+
+        case 'title_updated':
+            state.title = msg.title;
+            var h1 = document.querySelector('h1');
+            if (document.activeElement !== h1) {
+                h1.textContent = msg.title;
+            }
+            break;
+
+        case 'label_updated':
+            updateRowInState(msg.row_id, function(r) { r.label = msg.label; });
+            updateLabelDOM(msg.row_id, msg.label);
+            break;
+
+        case 'label_color_updated':
+            updateRowInState(msg.row_id, function(r) { r.color = msg.color; });
+            updateLabelColorDOM(msg.row_id, msg.color);
+            break;
+
+        case 'row_added':
+            state.rows = msg.rows;
+            renderRows();
+            break;
+
+        case 'row_deleted':
+            state.rows = state.rows.filter(function(r) { return r.id !== msg.row_id; });
+            removeRowDOM(msg.row_id);
+            msg.staging_images.forEach(function(img) {
+                state.staging_images.push(img);
+                renderCharacter(img, document.getElementById('staging-area'));
+            });
+            break;
+
+        case 'row_cleared':
+            updateRowInState(msg.row_id, function(r) { r.images = []; });
+            moveImagesToStaging(msg.row_id);
+            msg.staging_images.forEach(function(img) {
+                state.staging_images.push(img);
+            });
+            break;
+
+        case 'rows_reordered':
+            state.rows = msg.rows;
+            renderRows();
+            break;
+
+        case 'image_uploaded':
+            state.staging_images.push(msg.image);
+            renderCharacter(msg.image, document.getElementById('staging-area'));
+            break;
+
+        case 'image_moved':
+            moveImageInState(msg.image_id, msg.target_row_id);
+            moveImageDOM(msg.image_id, msg.target_row_id);
+            break;
+
+        case 'image_deleted':
+            removeImageFromState(msg.image_id);
+            removeImageDOM(msg.image_id);
+            break;
+
+        case 'all_staged':
+            for (var i = 0; i < state.rows.length; i++) {
+                state.rows[i].images = [];
+            }
+            state.staging_images = msg.staging_images;
+            moveAllImagesToStaging();
+            renderStaging();
+            break;
+
+        case 'color_sequence_applied':
+            state.rows = msg.rows;
+            for (var i = 0; i < msg.rows.length; i++) {
+                updateLabelColorDOM(msg.rows[i].id, msg.rows[i].color);
+            }
+            break;
+
+        case 'image_fit_toggled':
+            var img = findImageInState(msg.image_id);
+            if (img) img.fit_width = msg.fit_width;
+            var el = document.querySelector('.character[data-image-id="' + msg.image_id + '"]');
+            if (el) {
+                if (msg.fit_width) {
+                    el.classList.add('fit-width');
+                } else {
+                    el.classList.remove('fit-width');
+                }
+            }
+            break;
+
+        case 'action_rejected':
+            alert(msg.error || '操作被拒绝');
+            break;
+
+        case 'upload_rejected':
+            alert(msg.error || '上传被拒绝');
+            break;
+    }
+}

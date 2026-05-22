@@ -1,0 +1,43 @@
+/* === Bottom Area: Delete Zone + Staging Area === */
+#bottom-area {
+    width: 100%;
+    max-width: 1200px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+}
+#delete-wrap {
+    width: 100px;
+    flex-shrink: 0;
+}
+#delete-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 92px;
+    height: 100%;
+    border: 2px dashed #c44;
+    border-radius: 6px;
+    background: #2a1a1a;
+    color: #c44;
+    font-size: 16px;
+    transition: background 0.2s, border-color 0.2s;
+    cursor: default;
+}
+#delete-zone.drag-over {
+    background: #3a1a1a;
+    border-color: #f66;
+}
+#staging-wrap {
+    flex: 1;
+}
+#staging-area {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 92px;
+    padding: 4px;
+    border: 2px dashed #666;
+    border-radius: 6px;
+    background: #222;
+}
