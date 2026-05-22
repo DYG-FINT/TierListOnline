@@ -17,6 +17,8 @@ import (
 //go:embed web
 var embeddedWeb embed.FS
 
+var Version = "dev"
+
 func main() {
 	h := hub.NewHub()
 	h.LoadState()
@@ -38,6 +40,7 @@ func main() {
 	port := loadSettings()
 	go watchSettings()
 	log.Printf("Tier List 服务器启动于 http://127.0.0.1:%s", port)
+	log.Printf("服务器版本：%s", Version)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
 
