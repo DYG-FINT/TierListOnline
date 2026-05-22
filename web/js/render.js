@@ -108,6 +108,10 @@ function setupDesktopImageEvents(div, img) {
 function setupMobileImageEvents(div, img) {
     div.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     div.addEventListener('selectstart', function(e) { e.preventDefault(); });
+    div.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    });
 
     var longPressTimer = null;
     var touchMoved = false;
@@ -116,7 +120,6 @@ function setupMobileImageEvents(div, img) {
     var startY = 0;
 
     div.addEventListener('touchstart', function(e) {
-        e.preventDefault();
         var touch = e.touches[0];
         startX = touch.clientX;
         startY = touch.clientY;
@@ -131,7 +134,7 @@ function setupMobileImageEvents(div, img) {
             if (navigator.vibrate) navigator.vibrate(15);
             send({type: 'toggle_image_fit', image_id: img.id});
         }, 500);
-    }, {passive: false});
+    });
 
     div.addEventListener('touchmove', function(e) {
         if (!touchMoved && longPressTimer) {
@@ -142,7 +145,7 @@ function setupMobileImageEvents(div, img) {
                 longPressTimer = null;
             }
         }
-    }, {passive: false});
+    });
 
     div.addEventListener('touchend', function(e) {
         e.preventDefault();
