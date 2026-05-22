@@ -23,6 +23,10 @@
     font-size: 16px;
     transition: background 0.2s, border-color 0.2s;
     cursor: default;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 #delete-zone.drag-over {
     background: #3a1a1a;
@@ -40,4 +44,18 @@
     border: 2px dashed #666;
     border-radius: 6px;
     background: #222;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+body.has-selection .tier.sort,
+body.has-selection #staging-area {
+    border-color: rgba(68,170,255,0.4);
+    background: rgba(68,170,255,0.05);
+}
+body.has-selection #delete-zone {
+    border-color: #f66;
+    background: #3a1a1a;
 }

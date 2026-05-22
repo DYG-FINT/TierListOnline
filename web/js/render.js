@@ -1,5 +1,10 @@
 // ========== Render Functions ==========
 
+var _lastTapImageId = null;
+var _lastTapTime = 0;
+var _pendingTapImageId = null;
+var _pendingTapTimer = null;
+
 function renderAll() {
     document.querySelector('h1').textContent = state.title;
     renderRows();
@@ -64,6 +69,22 @@ function renderCharacter(img, container) {
     var div = document.createElement('div');
     div.className = 'character' + (img.fit_width ? ' fit-width' : '');
     div.setAttribute('data-image-id', img.id);
+
+    if (isMobileDevice) {
+        setupMobileImageEvents(div, img);
+    } else {
+        setupDesktopImageEvents(div, img);
+    }
+
+    var imgEl = document.createElement('img');
+    imgEl.src = img.url;
+    imgEl.alt = '';
+    div.appendChild(imgEl);
+
+    container.appendChild(div);
+}
+
+function setupDesktopImageEvents(div, img) {
     div.draggable = true;
     div.addEventListener('dragstart', handleDragStart);
     div.addEventListener('dragend', handleDragEnd);
@@ -82,13 +103,96 @@ function renderCharacter(img, container) {
         }
         pointerStart = null;
     });
+}
 
-    var imgEl = document.createElement('img');
-    imgEl.src = img.url;
-    imgEl.alt = '';
-    div.appendChild(imgEl);
+function setupMobileImageEvents(div, img) {
+    div.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    div.addEventListener('selectstart', function(e) { e.preventDefault(); });
 
-    container.appendChild(div);
+    var longPressTimer = null;
+    var touchMoved = false;
+    var longPressFired = false;
+    var startX = 0;
+    var startY = 0;
+
+    div.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        touchMoved = false;
+        longPressFired = false;
+
+        longPressTimer = setTimeout(function() {
+            longPressTimer = null;
+            longPressFired = true;
+            _lastTapImageId = null;
+            _lastTapTime = 0;
+            if (navigator.vibrate) navigator.vibrate(15);
+            send({type: 'toggle_image_fit', image_id: img.id});
+        }, 500);
+    }, {passive: false});
+
+    div.addEventListener('touchmove', function(e) {
+        if (!touchMoved && longPressTimer) {
+            var touch = e.touches[0];
+            if (Math.abs(touch.clientX - startX) > 8 || Math.abs(touch.clientY - startY) > 8) {
+                touchMoved = true;
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+    }, {passive: false});
+
+    div.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+        if (touchMoved || longPressFired) return;
+
+        var imageId = div.getAttribute('data-image-id');
+        var now = Date.now();
+        if (_lastTapImageId === imageId && (now - _lastTapTime) < 350) {
+            _lastTapTime = 0;
+            _lastTapImageId = null;
+            if (_pendingTapTimer) {
+                clearTimeout(_pendingTapTimer);
+                _pendingTapTimer = null;
+                _pendingTapImageId = null;
+            }
+            openImageFullscreen(img.url);
+            return;
+        }
+
+        _lastTapImageId = imageId;
+        _lastTapTime = now;
+
+        if (_pendingTapTimer) {
+            clearTimeout(_pendingTapTimer);
+            _pendingTapTimer = null;
+            _pendingTapImageId = null;
+        }
+
+        _pendingTapImageId = imageId;
+        _pendingTapTimer = setTimeout(function() {
+            _pendingTapTimer = null;
+            if (selectedImageId === imageId) {
+                deselectImage();
+            } else {
+                selectImage(imageId);
+            }
+            _pendingTapImageId = null;
+        }, 200);
+    }, {passive: false});
+
+    div.addEventListener('touchcancel', function() {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    });
 }
 
 function removeRowDOM(rowId) {

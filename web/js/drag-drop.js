@@ -74,6 +74,25 @@ function setupDropZone(zone) {
         this.classList.remove('drag-over');
     });
     zone.addEventListener('drop', handleSortDrop);
+
+    if (isMobileDevice) {
+        zone.addEventListener('click', function(e) {
+            if (!selectedImageId) return;
+            if (e.target.closest('.character') || e.target.closest('.settings-control')) return;
+            var currentEl = document.querySelector('.character[data-image-id="' + selectedImageId + '"]');
+            if (currentEl && currentEl.parentElement === this) return;
+            var targetRow = this.closest('.tier-row');
+            var targetRowId = targetRow ? targetRow.getAttribute('data-row-id') : null;
+            send({
+                type: 'move_image',
+                image_id: selectedImageId,
+                target_row_id: targetRowId || 'null',
+                target_index: -1
+            });
+            moveImageDOM(selectedImageId, targetRowId);
+            deselectImage();
+        });
+    }
 }
 
 // Delete zone
@@ -102,6 +121,51 @@ document.getElementById('staging-area').addEventListener('dragleave', function()
     this.classList.remove('drag-over');
 });
 document.getElementById('staging-area').addEventListener('drop', handleStagingDrop);
+
+// ========== Mobile Tap Handlers ==========
+
+if (isMobileDevice) {
+    document.getElementById('delete-zone').addEventListener('click', function(e) {
+        if (!selectedImageId) return;
+        if (e.target.closest('.character')) return;
+        send({type: 'delete_image', image_id: selectedImageId});
+        var el = document.querySelector('.character[data-image-id="' + selectedImageId + '"]');
+        if (el) el.remove();
+        deselectImage();
+    });
+
+    document.getElementById('staging-area').addEventListener('click', function(e) {
+        if (!selectedImageId) return;
+        if (e.target.closest('.character')) return;
+        var currentEl = document.querySelector('.character[data-image-id="' + selectedImageId + '"]');
+        if (currentEl && currentEl.parentElement === this) return;
+        send({
+            type: 'move_image',
+            image_id: selectedImageId,
+            target_row_id: 'null',
+            target_index: -1
+        });
+        moveImageDOM(selectedImageId, 'null');
+        deselectImage();
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!selectedImageId) return;
+        if (e.target.closest('.character') ||
+            e.target.closest('.tier.sort') ||
+            e.target.closest('#staging-area') ||
+            e.target.closest('#delete-zone') ||
+            e.target.closest('.settings-control') ||
+            e.target.closest('button') ||
+            e.target.closest('label') ||
+            e.target.closest('#image-overlay') ||
+            e.target.closest('#overlay') ||
+            e.target.closest('h1')) {
+            return;
+        }
+        deselectImage();
+    });
+}
 
 // ========== Page-Level File Drop ==========
 

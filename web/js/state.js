@@ -11,6 +11,8 @@ let activeRowId = null;
 let dragImageId = null;
 let labelDebounceTimer = null;
 let titleDebounceTimer = null;
+let selectedImageId = null;
+let isMobileDevice = ('ontouchstart' in window) && window.matchMedia('(pointer: coarse)').matches;
 
 // ========== State Helpers ==========
 
@@ -85,4 +87,20 @@ function removeImageFromState(imageId) {
             return;
         }
     }
+}
+
+function selectImage(imageId) {
+    var old = document.querySelector('.character.selected');
+    if (old) old.classList.remove('selected');
+    selectedImageId = imageId;
+    var el = document.querySelector('.character[data-image-id="' + imageId + '"]');
+    if (el) el.classList.add('selected');
+    document.body.classList.add('has-selection');
+}
+
+function deselectImage() {
+    var el = document.querySelector('.character.selected');
+    if (el) el.classList.remove('selected');
+    selectedImageId = null;
+    document.body.classList.remove('has-selection');
 }

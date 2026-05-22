@@ -101,11 +101,13 @@ function handleMessage(msg) {
             msg.staging_images.forEach(function(img) {
                 state.staging_images.push(img);
             });
+            deselectImage();
             break;
 
         case 'rows_reordered':
             state.rows = msg.rows;
             renderRows();
+            deselectImage();
             break;
 
         case 'image_uploaded':
@@ -116,11 +118,13 @@ function handleMessage(msg) {
         case 'image_moved':
             moveImageInState(msg.image_id, msg.target_row_id);
             moveImageDOM(msg.image_id, msg.target_row_id);
+            if (selectedImageId === msg.image_id) deselectImage();
             break;
 
         case 'image_deleted':
             removeImageFromState(msg.image_id);
             removeImageDOM(msg.image_id);
+            if (selectedImageId === msg.image_id) deselectImage();
             break;
 
         case 'all_staged':
@@ -130,6 +134,7 @@ function handleMessage(msg) {
             state.staging_images = msg.staging_images;
             moveAllImagesToStaging();
             renderStaging();
+            deselectImage();
             break;
 
         case 'color_sequence_applied':
