@@ -32,13 +32,16 @@ function showToast(message, options) {
         }, duration);
     });
 
-    function dismiss(el) {
-        if (el.classList.contains('out')) return;
-        el.classList.add('out');
-        setTimeout(function() {
+    el.addEventListener('animationend', function(e) {
+        if (e.animationName === 'toast-out') {
             if (el.parentNode) {
                 el.parentNode.removeChild(el);
             }
-        }, 250);
+        }
+    });
+
+    function dismiss(el) {
+        if (el.classList.contains('out')) return;
+        el.classList.add('out');
     }
 }
