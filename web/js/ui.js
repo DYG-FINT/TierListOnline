@@ -47,7 +47,7 @@ function selectLabelColor(color, el) {
 function deleteRow() {
     if (!activeRowId) return;
     if (state.rows.length <= 1) {
-        alert('不能删除最后一行。');
+        showToast('不能删除最后一行。', {type: 'error'});
         return;
     }
     send({type: 'delete_row', row_id: activeRowId});
@@ -273,7 +273,7 @@ document.getElementById('save-preset-confirm-btn').addEventListener('click', fun
     var input = document.getElementById('save-preset-input');
     var name = input.value.trim();
     if (!name) {
-        alert('请输入预设名称');
+        showToast('请输入预设名称', {type: 'error'});
         return;
     }
     send({type: 'save_preset', preset_name: name});

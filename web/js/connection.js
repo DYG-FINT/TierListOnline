@@ -163,19 +163,19 @@ function handleMessage(msg) {
 
         case 'preset_saved':
             if (msg.success) {
-                alert('预设保存成功');
+                showToast('预设保存成功', {type: 'success'});
                 closeSavePresetDialog();
             } else {
-                alert(msg.error || '预设保存失败');
+                showToast(msg.error || '预设保存失败', {type: 'error'});
             }
             break;
 
         case 'action_rejected':
-            alert(msg.error || '操作被拒绝');
+            showToast(msg.error || '操作被拒绝', {type: 'error'});
             break;
 
         case 'upload_rejected':
-            alert(msg.error || '上传被拒绝');
+            showToast(msg.error || '上传被拒绝', {type: 'error'});
             break;
     }
 }
