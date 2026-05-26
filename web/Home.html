@@ -40,6 +40,7 @@
         <button id="color-picker-link" onclick="toggleBgColorPicker()">更改背景颜色</button>
         <button id="stage-all-btn" class="reset-button">全部放入暂存区<span id="stage-all-progress" class="reset-progress"></span></button>
         <button id="reset-btn" class="reset-button">重置<span id="reset-progress" class="reset-progress"></span></button>
+        <button id="save-preset-btn">保存为预设</button>
     </div>
 
     <!-- Background Color Picker -->
@@ -102,6 +103,33 @@
     <div id="image-overlay" onclick="closeImageFullscreen(event)">
         <button class="close-btn" onclick="closeImageFullscreen()">&times;</button>
         <img id="image-fullscreen" src="" alt="">
+    </div>
+
+    <!-- Preset Selection Dialog -->
+    <div id="preset-overlay">
+        <div id="preset-modal">
+            <h3>预设选择</h3>
+            <div id="preset-list"></div>
+            <div class="preset-buttons">
+                <button id="preset-close-btn">关闭</button>
+                <button id="preset-confirm-btn" class="reset-button">
+                    确认重置<span id="preset-confirm-progress" class="reset-progress"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Preset Dialog -->
+    <div id="save-preset-overlay">
+        <div id="save-preset-modal">
+            <h3>保存为预设</h3>
+            <p class="save-preset-hint">请输入预设名称</p>
+            <input id="save-preset-input" type="text" maxlength="100" placeholder="预设名称">
+            <div class="save-preset-buttons">
+                <button id="save-preset-close-btn">关闭</button>
+                <button id="save-preset-confirm-btn">确认</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/state.js"></script>

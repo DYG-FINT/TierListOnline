@@ -63,6 +63,15 @@ type Message struct {
 	// toggle_image_fit / image_fit_toggled
 	FitWidth bool `json:"fit_width,omitempty"`
 
+	// list_presets / load_preset / save_preset
+	PresetName string `json:"preset_name,omitempty"`
+
+	// presets_list
+	Presets []string `json:"presets,omitempty"`
+
+	// preset_saved
+	Success bool `json:"success,omitempty"`
+
 	// upload_rejected
 	Error string `json:"error,omitempty"`
 }

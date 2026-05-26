@@ -13,6 +13,7 @@ import (
 const (
 	StateFile  = "storage/state.json"
 	UploadDir  = "storage/uploads"
+	PresetDir  = "storage/preset"
 	MaxMsgSize = 10 * 1024 * 1024 // 10 MB
 
 	ModeFree = "free"

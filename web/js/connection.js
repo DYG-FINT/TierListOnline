@@ -157,6 +157,19 @@ function handleMessage(msg) {
             }
             break;
 
+        case 'presets_list':
+            updatePresetList(msg.presets);
+            break;
+
+        case 'preset_saved':
+            if (msg.success) {
+                alert('预设保存成功');
+                closeSavePresetDialog();
+            } else {
+                alert(msg.error || '预设保存失败');
+            }
+            break;
+
         case 'action_rejected':
             alert(msg.error || '操作被拒绝');
             break;

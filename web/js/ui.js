@@ -120,53 +120,170 @@ function changeBgColor(color, el) {
     highlightBgSwatch(color);
 }
 
-// ========== Reset Button ==========
+// ========== Reset Button (now opens preset dialog) ==========
 
-var resetTimer = null;
-var resetStartTime = null;
 var resetBtn = document.getElementById('reset-btn');
-var resetProgress = document.getElementById('reset-progress');
-
-function startReset(e) {
-    e.preventDefault();
-    if (resetTimer) return;
-    resetStartTime = Date.now();
-    resetBtn.classList.add('resetting');
-    resetProgress.style.animation = 'none';
-    resetProgress.offsetHeight;
-    resetProgress.style.animation = 'reset-fill 3s linear forwards';
-    resetTimer = setTimeout(triggerReset, 3000);
-}
-
-function cancelReset() {
-    if (!resetTimer) return;
-    clearTimeout(resetTimer);
-    resetTimer = null;
-    resetStartTime = null;
-    resetBtn.classList.remove('resetting');
-    resetProgress.style.animation = 'none';
-}
-
-function triggerReset() {
-    resetTimer = null;
-    resetStartTime = null;
-    resetBtn.classList.remove('resetting');
-    resetBtn.classList.add('reset-done');
-    resetProgress.style.animation = 'none';
-    setTimeout(function() { resetBtn.classList.remove('reset-done'); }, 600);
-    document.getElementById('tier-container').style.background = '#1a1a1a';
-    highlightBgSwatch('#1a1a1a');
-    send({type: 'reset'});
-}
 
 if (resetBtn) {
-    resetBtn.addEventListener('mousedown', startReset);
-    resetBtn.addEventListener('mouseup', cancelReset);
-    resetBtn.addEventListener('mouseleave', cancelReset);
-    resetBtn.addEventListener('touchstart', startReset);
-    resetBtn.addEventListener('touchend', cancelReset);
-    resetBtn.addEventListener('touchcancel', cancelReset);
+    resetBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        send({type: 'list_presets'});
+        openPresetDialog();
+    });
 }
+
+// ========== Preset Selection Dialog ==========
+
+var selectedPresetName = '';
+var presetConfirmTimer = null;
+var presetConfirmBtn = document.getElementById('preset-confirm-btn');
+var presetConfirmProgress = document.getElementById('preset-confirm-progress');
+
+function openPresetDialog() {
+    document.getElementById('preset-overlay').classList.add('active');
+    selectedPresetName = '';
+    renderPresetList([]);
+}
+
+function closePresetDialog() {
+    document.getElementById('preset-overlay').classList.remove('active');
+    cancelPresetConfirm();
+}
+
+function renderPresetList(presets) {
+    var list = document.getElementById('preset-list');
+    list.innerHTML = '';
+
+    var emptyBtn = createPresetItem('默认列表', '');
+    emptyBtn.classList.add('selected');
+    selectedPresetName = '';
+    list.appendChild(emptyBtn);
+
+    for (var i = 0; i < presets.length; i++) {
+        var btn = createPresetItem(presets[i], presets[i]);
+        list.appendChild(btn);
+    }
+}
+
+function createPresetItem(label, name) {
+    var btn = document.createElement('button');
+    btn.className = 'preset-item';
+    btn.textContent = label;
+    btn.addEventListener('click', function() {
+        var items = document.querySelectorAll('#preset-list .preset-item');
+        for (var i = 0; i < items.length; i++) {
+            items[i].classList.remove('selected');
+        }
+        btn.classList.add('selected');
+        selectedPresetName = name;
+    });
+    return btn;
+}
+
+function updatePresetList(presets) {
+    if (!presets || !presets.length) return;
+    var list = document.getElementById('preset-list');
+    var existing = list.querySelectorAll('.preset-item');
+    // Remove all except the first ("空列表")
+    for (var i = existing.length - 1; i > 0; i--) {
+        existing[i].remove();
+    }
+    for (var i = 0; i < presets.length; i++) {
+        var btn = createPresetItem(presets[i], presets[i]);
+        list.appendChild(btn);
+    }
+}
+
+document.getElementById('preset-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closePresetDialog();
+});
+
+document.getElementById('preset-close-btn').addEventListener('click', closePresetDialog);
+
+// ========== Preset Confirm Long-Press ==========
+
+function startPresetConfirm(e) {
+    e.preventDefault();
+    if (presetConfirmTimer) return;
+    presetConfirmBtn.classList.add('resetting');
+    presetConfirmProgress.style.animation = 'none';
+    presetConfirmProgress.offsetHeight;
+    presetConfirmProgress.style.animation = 'reset-fill 3s linear forwards';
+    presetConfirmTimer = setTimeout(triggerPresetConfirm, 3000);
+}
+
+function cancelPresetConfirm() {
+    if (!presetConfirmTimer) return;
+    clearTimeout(presetConfirmTimer);
+    presetConfirmTimer = null;
+    if (presetConfirmBtn) {
+        presetConfirmBtn.classList.remove('resetting');
+        presetConfirmProgress.style.animation = 'none';
+    }
+}
+
+function triggerPresetConfirm() {
+    presetConfirmTimer = null;
+    presetConfirmBtn.classList.remove('resetting');
+    presetConfirmBtn.classList.add('reset-done');
+    presetConfirmProgress.style.animation = 'none';
+    setTimeout(function() { presetConfirmBtn.classList.remove('reset-done'); }, 600);
+    send({type: 'load_preset', preset_name: selectedPresetName});
+    closePresetDialog();
+}
+
+if (presetConfirmBtn) {
+    presetConfirmBtn.addEventListener('mousedown', startPresetConfirm);
+    presetConfirmBtn.addEventListener('mouseup', cancelPresetConfirm);
+    presetConfirmBtn.addEventListener('mouseleave', cancelPresetConfirm);
+    presetConfirmBtn.addEventListener('touchstart', startPresetConfirm);
+    presetConfirmBtn.addEventListener('touchend', cancelPresetConfirm);
+    presetConfirmBtn.addEventListener('touchcancel', cancelPresetConfirm);
+}
+
+// ========== Save Preset Dialog ==========
+
+var savePresetBtn = document.getElementById('save-preset-btn');
+
+if (savePresetBtn) {
+    savePresetBtn.addEventListener('click', function() {
+        openSavePresetDialog();
+    });
+}
+
+function openSavePresetDialog() {
+    document.getElementById('save-preset-input').value = '';
+    document.getElementById('save-preset-overlay').classList.add('active');
+    setTimeout(function() {
+        document.getElementById('save-preset-input').focus();
+    }, 100);
+}
+
+function closeSavePresetDialog() {
+    document.getElementById('save-preset-overlay').classList.remove('active');
+}
+
+document.getElementById('save-preset-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeSavePresetDialog();
+});
+
+document.getElementById('save-preset-close-btn').addEventListener('click', closeSavePresetDialog);
+
+document.getElementById('save-preset-confirm-btn').addEventListener('click', function() {
+    var input = document.getElementById('save-preset-input');
+    var name = input.value.trim();
+    if (!name) {
+        alert('请输入预设名称');
+        return;
+    }
+    send({type: 'save_preset', preset_name: name});
+});
+
+document.getElementById('save-preset-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('save-preset-confirm-btn').click();
+    }
+});
 
 // ========== Stage All Button ==========
 

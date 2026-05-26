@@ -427,6 +427,45 @@ func (h *Hub) toggleImageFit(imageID string) []byte {
 	return b
 }
 
+func (h *Hub) listPresets() []byte {
+	names := listPresetNames()
+	if names == nil {
+		names = []string{}
+	}
+	b, _ := json.Marshal(models.Message{Type: "presets_list", Presets: names})
+	return b
+}
+
+func (h *Hub) savePreset(name string) []byte {
+	if err := h.savePresetToDisk(name); err != nil {
+		if os.IsExist(err) {
+			b, _ := json.Marshal(models.Message{Type: "preset_saved", Success: false, Error: "预设名称已存在"})
+			return b
+		}
+		b, _ := json.Marshal(models.Message{Type: "preset_saved", Success: false, Error: "预设保存失败"})
+		return b
+	}
+	log.Printf("预设 %s 已保存", name)
+	b, _ := json.Marshal(models.Message{Type: "preset_saved", Success: true, PresetName: name})
+	return b
+}
+
+func (h *Hub) loadPreset(name string) []byte {
+	if name == "" {
+		return h.resetState()
+	}
+	if err := h.loadPresetFromDisk(name); err != nil {
+		log.Printf("加载预设 %s 失败：%v", name, err)
+		return nil
+	}
+	h.mu.Lock()
+	h.state = &models.TierList{}
+	h.mu.Unlock()
+	h.LoadState()
+	log.Printf("预设 %s 已加载", name)
+	return h.buildFullState()
+}
+
 func (h *Hub) handleMessage(client *Client, raw []byte) {
 	var msg models.Message
 	if err := json.Unmarshal(raw, &msg); err != nil {
@@ -435,7 +474,7 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 	}
 
 	if config.GetServerMode() == config.ModeSort && !config.IsWhitelistIP(client.IP) {
-		if msg.Type != "move_image" && msg.Type != "toggle_image_fit" {
+		if msg.Type != "move_image" && msg.Type != "toggle_image_fit" && msg.Type != "list_presets" {
 			log.Printf("仅排序模式：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
 			reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "当前为仅排序模式，您没有权限执行此操作"})
 			select {
@@ -495,6 +534,30 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		broadcast = h.applyColorSequence(msg.RowID)
 	case "toggle_image_fit":
 		broadcast = h.toggleImageFit(msg.ImageID)
+	case "list_presets":
+		resp := h.listPresets()
+		select {
+		case client.send <- resp:
+		default:
+		}
+		return
+	case "save_preset":
+		resp := h.savePreset(msg.PresetName)
+		select {
+		case client.send <- resp:
+		default:
+		}
+		return
+	case "load_preset":
+		broadcast = h.loadPreset(msg.PresetName)
+		if broadcast == nil {
+			reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "预设加载失败，预设可能已被删除"})
+			select {
+			case client.send <- reject:
+			default:
+			}
+			return
+		}
 	default:
 		log.Printf("未知消息类型：%s", msg.Type)
 		return

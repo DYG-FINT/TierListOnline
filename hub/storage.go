@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +14,9 @@ import (
 func (h *Hub) LoadState() {
 	if err := os.MkdirAll(config.UploadDir, 0755); err != nil {
 		log.Fatalf("创建上传目录失败：%v", err)
+	}
+	if err := os.MkdirAll(config.PresetDir, 0755); err != nil {
+		log.Fatalf("创建预设目录失败：%v", err)
 	}
 
 	data, err := os.ReadFile(config.StateFile)
@@ -110,4 +114,91 @@ func (h *Hub) cleanupOrphans() {
 			}
 		}
 	}
+}
+
+func listPresetNames() []string {
+	entries, err := os.ReadDir(config.PresetDir)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			names = append(names, entry.Name())
+		}
+	}
+	return names
+}
+
+func copyFile(src, dst string) error {
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+
+	d, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
+	_, err = io.Copy(d, s)
+	return err
+}
+
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		dstPath := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, 0755)
+		}
+		return copyFile(path, dstPath)
+	})
+}
+
+func (h *Hub) savePresetToDisk(name string) error {
+	presetPath := filepath.Join(config.PresetDir, name)
+	if _, err := os.Stat(presetPath); err == nil {
+		return os.ErrExist
+	}
+
+	// Copy state.json
+	srcState := config.StateFile
+	dstState := filepath.Join(presetPath, "state.json")
+	if err := copyFile(srcState, dstState); err != nil {
+		return err
+	}
+
+	// Copy uploads directory
+	srcUploads := config.UploadDir
+	dstUploads := filepath.Join(presetPath, "uploads")
+	return copyDir(srcUploads, dstUploads)
+}
+
+func (h *Hub) loadPresetFromDisk(name string) error {
+	presetPath := filepath.Join(config.PresetDir, name)
+
+	// Copy preset state.json
+	srcState := filepath.Join(presetPath, "state.json")
+	dstState := config.StateFile
+	if err := copyFile(srcState, dstState); err != nil {
+		return err
+	}
+
+	// Clear current uploads
+	os.RemoveAll(config.UploadDir)
+	os.MkdirAll(config.UploadDir, 0755)
+
+	// Copy preset uploads
+	srcUploads := filepath.Join(presetPath, "uploads")
+	return copyDir(srcUploads, config.UploadDir)
 }
