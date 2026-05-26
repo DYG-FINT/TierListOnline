@@ -18,31 +18,73 @@ const (
 )
 
 var DefaultPermissions = map[string]bool{
-	"set_title":           true,
-	"update_label":        true,
-	"update_label_color":  true,
-	"add_row":             true,
-	"delete_row":          true,
-	"clear_row":           true,
-	"move_row":            true,
-	"upload_image":        true,
-	"move_image":          true,
-	"delete_image":        true,
-	"reset":               true,
-	"stage_all":           true,
+	"set_title":            true,
+	"update_label":         true,
+	"update_label_color":   true,
+	"add_row":              true,
+	"delete_row":           true,
+	"clear_row":            true,
+	"move_row":             true,
+	"upload_image":         true,
+	"move_image":           true,
+	"delete_image":         true,
+	"stage_all":            true,
 	"apply_color_sequence": true,
-	"toggle_image_fit":    true,
-	"list_presets":        true,
-	"save_preset":         true,
-	"load_preset":         true,
+	"toggle_image_fit":     true,
+	"list_presets":         true,
+	"save_preset":          true,
+	"load_preset":          true,
+}
+
+var DefaultPermissionsUsage = map[string]bool{"#free": true}
+
+var DefaultPermissionPresets = map[string]map[string]bool{
+	"free": {
+		"set_title":            true,
+		"update_label":         true,
+		"update_label_color":   true,
+		"add_row":              true,
+		"delete_row":           true,
+		"clear_row":            true,
+		"move_row":             true,
+		"upload_image":         true,
+		"move_image":           true,
+		"delete_image":         true,
+		"stage_all":            true,
+		"apply_color_sequence": true,
+		"toggle_image_fit":     true,
+		"list_presets":         true,
+		"save_preset":          true,
+		"load_preset":          true,
+	},
+	"temporary_free": {
+		"#free":       true,
+		"save_preset": false,
+	},
+	"sort_only": {
+		"move_image":       true,
+		"toggle_image_fit": true,
+	},
+	"reset": {
+		"list_presets": true,
+		"load_preset":  true,
+		"move_image":   true,
+	},
+	"collaborative": {
+		"#sort_only": true,
+		"#reset":     true,
+		"stage_all":  true,
+	},
 }
 
 var (
-	cfgMu             sync.RWMutex
-	maxUploadSizeMB   int      = 10
-	allowedExtensions []string
-	permissions       map[string]bool
-	whitelistIPs      []string
+	cfgMu               sync.RWMutex
+	maxUploadSizeMB     int      = 10
+	allowedExtensions   []string
+	permissions         map[string]bool
+	permissionPresets   map[string]map[string]bool
+	resolvedPermissions map[string]bool
+	whitelistIPs        []string
 )
 
 func GetMaxUploadSizeMB() int {
@@ -60,10 +102,10 @@ func GetAllowedExtensions() []string {
 func HasPermission(perm string) bool {
 	cfgMu.RLock()
 	defer cfgMu.RUnlock()
-	if permissions == nil {
+	if resolvedPermissions == nil {
 		return true
 	}
-	val, ok := permissions[perm]
+	val, ok := resolvedPermissions[perm]
 	if !ok {
 		return false
 	}
@@ -73,17 +115,12 @@ func HasPermission(perm string) bool {
 func GetAllPermissions() map[string]bool {
 	cfgMu.RLock()
 	defer cfgMu.RUnlock()
-	if permissions == nil {
+	if resolvedPermissions == nil {
 		return DefaultPermissions
 	}
-	cp := make(map[string]bool, len(DefaultPermissions))
-	for k := range DefaultPermissions {
-		val, ok := permissions[k]
-		if !ok {
-			cp[k] = false
-		} else {
-			cp[k] = val
-		}
+	cp := make(map[string]bool, len(resolvedPermissions))
+	for k, v := range resolvedPermissions {
+		cp[k] = v
 	}
 	return cp
 }
@@ -99,7 +136,7 @@ func IsWhitelistIP(ip string) bool {
 	return false
 }
 
-func ApplySettings(maxSize int, extensions []string, perms map[string]bool, ips []string) {
+func ApplySettings(maxSize int, extensions []string, perms map[string]bool, presets map[string]map[string]bool, ips []string) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
 	if maxSize > 0 {
@@ -111,7 +148,47 @@ func ApplySettings(maxSize int, extensions []string, perms map[string]bool, ips 
 	if perms != nil {
 		permissions = perms
 	}
+	if presets != nil {
+		permissionPresets = presets
+	}
+	resolvedPermissions = resolvePermissions(permissions, permissionPresets)
 	whitelistIPs = ips
+}
+
+func resolvePermissions(perms map[string]bool, presets map[string]map[string]bool) map[string]bool {
+	result := make(map[string]bool)
+	if perms != nil {
+		resolveMap(result, perms, presets, nil)
+	}
+	return result
+}
+
+func resolveMap(result map[string]bool, input map[string]bool, presets map[string]map[string]bool, visited map[string]bool) {
+	if visited == nil {
+		visited = make(map[string]bool)
+	}
+
+	// First pass: resolve preset references
+	for key, val := range input {
+		if strings.HasPrefix(key, "#") && val {
+			name := key[1:]
+			if visited[name] {
+				continue
+			}
+			visited[name] = true
+			if preset, ok := presets[name]; ok {
+				resolveMap(result, preset, presets, visited)
+			}
+			delete(visited, name)
+		}
+	}
+
+	// Second pass: apply direct keys (override presets)
+	for key, val := range input {
+		if !strings.HasPrefix(key, "#") {
+			result[key] = val
+		}
+	}
 }
 
 var ColorPalette = []string{

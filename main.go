@@ -59,11 +59,12 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 type serverSettings struct {
-	Port              int               `json:"port"`
-	MaxUploadSizeMB   int               `json:"max_upload_size_mb"`
-	AllowedExtensions []string          `json:"allowed_extensions"`
-	Permissions       map[string]bool   `json:"permissions"`
-	WhitelistIPs      []string          `json:"whitelist_ips"`
+	Port              int                          `json:"port"`
+	MaxUploadSizeMB   int                          `json:"max_upload_size_mb"`
+	AllowedExtensions []string                     `json:"allowed_extensions"`
+	PermissionPresets map[string]map[string]bool   `json:"permission_presets"`
+	Permissions       map[string]bool              `json:"permissions"`
+	WhitelistIPs      []string                     `json:"whitelist_ips"`
 }
 
 func loadSettings() string {
@@ -77,8 +78,9 @@ func loadSettings() string {
 			".avif", ".heic", ".heif",
 			".jp2", ".jpx", ".j2k", ".jxl",
 		},
-		Permissions:   config.DefaultPermissions,
-		WhitelistIPs:  []string{"127.0.0.1"},
+		PermissionPresets: config.DefaultPermissionPresets,
+		Permissions:       config.DefaultPermissionsUsage,
+		WhitelistIPs:      []string{"127.0.0.1"},
 	}
 
 	data, err := os.ReadFile("settings.json")
@@ -114,7 +116,7 @@ func loadSettings() string {
 }
 
 func applySettings(s serverSettings) {
-	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.Permissions, s.WhitelistIPs)
+	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.Permissions, s.PermissionPresets, s.WhitelistIPs)
 }
 
 func watchSettings() {

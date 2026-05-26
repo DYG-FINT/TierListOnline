@@ -524,8 +524,6 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		}
 	case "delete_image":
 		broadcast = h.deleteImage(msg.ImageID)
-	case "reset":
-		broadcast = h.resetState()
 	case "stage_all":
 		broadcast = h.stageAll()
 	case "apply_color_sequence":
