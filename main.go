@@ -24,8 +24,8 @@ func main() {
 	h.LoadState()
 	go h.Run()
 
-	cssSub, _ := fs.Sub(embeddedWeb, "web/css")
-	jsSub, _ := fs.Sub(embeddedWeb, "web/js")
+	cssSub, _ := fs.Sub(embeddedWeb, "web/tier-list/css")
+	jsSub, _ := fs.Sub(embeddedWeb, "web/tier-list/js")
 	cssFS := http.FileServer(http.FS(cssSub))
 	jsFS := http.FileServer(http.FS(jsSub))
 	uploadsFS := http.FileServer(http.Dir(config.UploadDir))
@@ -49,7 +49,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := embeddedWeb.ReadFile("web/Home.html")
+	data, err := embeddedWeb.ReadFile("web/tier-list/tier-list.html")
 	if err != nil {
 		http.Error(w, "页面未找到", http.StatusNotFound)
 		return
