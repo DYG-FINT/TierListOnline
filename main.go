@@ -28,7 +28,7 @@ func main() {
 	jsSub, _ := fs.Sub(embeddedWeb, "web/js")
 	cssFS := http.FileServer(http.FS(cssSub))
 	jsFS := http.FileServer(http.FS(jsSub))
-	uploadsFS := http.FileServer(http.Dir("storage/uploads"))
+	uploadsFS := http.FileServer(http.Dir(config.UploadDir))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serveHome)

@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	StateFile  = "storage/state.json"
-	UploadDir  = "storage/uploads"
-	PresetDir  = "storage/preset"
+	StateFile  = "storage/active/state.json"
+	UploadDir  = "storage/active/uploads"
+	PresetDir  = "storage/presets"
 	MaxMsgSize = 10 * 1024 * 1024 // 10 MB
 )
 
