@@ -15,16 +15,33 @@ const (
 	UploadDir  = "storage/uploads"
 	PresetDir  = "storage/preset"
 	MaxMsgSize = 10 * 1024 * 1024 // 10 MB
-
-	ModeFree = "free"
-	ModeSort = "sort"
 )
+
+var DefaultPermissions = map[string]bool{
+	"set_title":           true,
+	"update_label":        true,
+	"update_label_color":  true,
+	"add_row":             true,
+	"delete_row":          true,
+	"clear_row":           true,
+	"move_row":            true,
+	"upload_image":        true,
+	"move_image":          true,
+	"delete_image":        true,
+	"reset":               true,
+	"stage_all":           true,
+	"apply_color_sequence": true,
+	"toggle_image_fit":    true,
+	"list_presets":        true,
+	"save_preset":         true,
+	"load_preset":         true,
+}
 
 var (
 	cfgMu             sync.RWMutex
 	maxUploadSizeMB   int      = 10
 	allowedExtensions []string
-	serverMode        string = ModeFree
+	permissions       map[string]bool
 	whitelistIPs      []string
 )
 
@@ -40,10 +57,35 @@ func GetAllowedExtensions() []string {
 	return allowedExtensions
 }
 
-func GetServerMode() string {
+func HasPermission(perm string) bool {
 	cfgMu.RLock()
 	defer cfgMu.RUnlock()
-	return serverMode
+	if permissions == nil {
+		return true
+	}
+	val, ok := permissions[perm]
+	if !ok {
+		return false
+	}
+	return val
+}
+
+func GetAllPermissions() map[string]bool {
+	cfgMu.RLock()
+	defer cfgMu.RUnlock()
+	if permissions == nil {
+		return DefaultPermissions
+	}
+	cp := make(map[string]bool, len(DefaultPermissions))
+	for k := range DefaultPermissions {
+		val, ok := permissions[k]
+		if !ok {
+			cp[k] = false
+		} else {
+			cp[k] = val
+		}
+	}
+	return cp
 }
 
 func IsWhitelistIP(ip string) bool {
@@ -57,7 +99,7 @@ func IsWhitelistIP(ip string) bool {
 	return false
 }
 
-func ApplySettings(maxSize int, extensions []string, mode string, ips []string) {
+func ApplySettings(maxSize int, extensions []string, perms map[string]bool, ips []string) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
 	if maxSize > 0 {
@@ -66,8 +108,8 @@ func ApplySettings(maxSize int, extensions []string, mode string, ips []string) 
 	if len(extensions) > 0 {
 		allowedExtensions = extensions
 	}
-	if mode == ModeFree || mode == ModeSort {
-		serverMode = mode
+	if perms != nil {
+		permissions = perms
 	}
 	whitelistIPs = ips
 }

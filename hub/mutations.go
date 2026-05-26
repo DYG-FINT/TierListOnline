@@ -473,20 +473,18 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		return
 	}
 
-	if config.GetServerMode() == config.ModeSort && !config.IsWhitelistIP(client.IP) {
-		if msg.Type != "move_image" && msg.Type != "toggle_image_fit" && msg.Type != "list_presets" {
-			log.Printf("仅排序模式：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
-			reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "当前为仅排序模式，您没有权限执行此操作"})
-			select {
-			case client.send <- reject:
-			default:
-			}
-			select {
-			case client.send <- h.buildFullState():
-			default:
-			}
-			return
+	if !config.IsWhitelistIP(client.IP) && !config.HasPermission(msg.Type) {
+		log.Printf("权限不足：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
+		reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "您没有权限执行此操作"})
+		select {
+		case client.send <- reject:
+		default:
 		}
+		select {
+		case client.send <- h.buildFullState():
+		default:
+		}
+		return
 	}
 
 	var broadcast []byte
