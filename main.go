@@ -63,7 +63,7 @@ type serverSettings struct {
 	MaxUploadSizeMB   int                          `json:"max_upload_size_mb"`
 	AllowedExtensions []string                     `json:"allowed_extensions"`
 	PermissionPresets map[string]map[string]bool   `json:"permission_presets"`
-	Permissions       map[string]bool              `json:"permissions"`
+	PermissionGroups  map[string]map[string]bool   `json:"permission_groups"`
 	WhitelistIPs      []string                     `json:"whitelist_ips"`
 }
 
@@ -79,7 +79,7 @@ func loadSettings() string {
 			".jp2", ".jpx", ".j2k", ".jxl",
 		},
 		PermissionPresets: config.DefaultPermissionPresets,
-		Permissions:       config.DefaultPermissionsUsage,
+		PermissionGroups:  config.DefaultPermissionGroups,
 		WhitelistIPs:      []string{"127.0.0.1"},
 	}
 
@@ -116,7 +116,7 @@ func loadSettings() string {
 }
 
 func applySettings(s serverSettings) {
-	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.Permissions, s.PermissionPresets, s.WhitelistIPs)
+	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.PermissionGroups, s.PermissionPresets, s.WhitelistIPs)
 }
 
 func watchSettings() {

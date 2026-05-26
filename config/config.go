@@ -36,7 +36,9 @@ var DefaultPermissions = map[string]bool{
 	"load_preset":          true,
 }
 
-var DefaultPermissionsUsage = map[string]bool{"#free": true}
+var DefaultPermissionGroups = map[string]map[string]bool{
+	"default": {"#free": true},
+}
 
 var DefaultPermissionPresets = map[string]map[string]bool{
 	"free": {
@@ -81,7 +83,7 @@ var (
 	cfgMu               sync.RWMutex
 	maxUploadSizeMB     int      = 10
 	allowedExtensions   []string
-	permissions         map[string]bool
+	permissionGroups    map[string]map[string]bool
 	permissionPresets   map[string]map[string]bool
 	resolvedPermissions map[string]bool
 	whitelistIPs        []string
@@ -136,7 +138,7 @@ func IsWhitelistIP(ip string) bool {
 	return false
 }
 
-func ApplySettings(maxSize int, extensions []string, perms map[string]bool, presets map[string]map[string]bool, ips []string) {
+func ApplySettings(maxSize int, extensions []string, groups map[string]map[string]bool, presets map[string]map[string]bool, ips []string) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
 	if maxSize > 0 {
@@ -145,13 +147,13 @@ func ApplySettings(maxSize int, extensions []string, perms map[string]bool, pres
 	if len(extensions) > 0 {
 		allowedExtensions = extensions
 	}
-	if perms != nil {
-		permissions = perms
+	if groups != nil {
+		permissionGroups = groups
 	}
 	if presets != nil {
 		permissionPresets = presets
 	}
-	resolvedPermissions = resolvePermissions(permissions, permissionPresets)
+	resolvedPermissions = resolvePermissions(permissionGroups["default"], permissionPresets)
 	whitelistIPs = ips
 }
 
