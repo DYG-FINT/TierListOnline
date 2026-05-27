@@ -51,6 +51,10 @@ func main() {
 	mux.HandleFunc("/api/login", auth.HandleLogin(config.UsersDir, sm))
 	mux.HandleFunc("/api/logout", auth.HandleLogout(sm))
 	mux.HandleFunc("/api/change-password", auth.HandleChangePassword(config.UsersDir, sm))
+	mux.HandleFunc("/api/permission-groups", auth.HandleListPermissionGroups(sm))
+	mux.HandleFunc("/api/modify-permission-group", auth.HandleModifyPermissionGroup(config.UsersDir, sm, func() {
+		h.BroadcastOnlineUsers()
+	}))
 
 	// Auth page routes
 	mux.HandleFunc("/auth/login", serveAuthPage("login"))

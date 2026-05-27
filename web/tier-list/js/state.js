@@ -9,6 +9,7 @@ const state = {
     username: '',
     permissionGroup: 'default',
     isLoggedIn: false,
+    canModifyPermissionGroup: false,
     onlineCount: 0,
     onlineUsers: []
 };

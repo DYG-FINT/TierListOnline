@@ -138,6 +138,7 @@ func (h *Hub) buildOnlineUsersMsg() []byte {
 		users = append(users, models.OnlineUser{
 			DisplayName:     displayName,
 			PermissionGroup: permGroup,
+			Username:        entry.Username,
 		})
 	}
 
@@ -155,13 +156,30 @@ func (h *Hub) broadcastOnlineUsers() {
 	h.broadcast <- msg
 }
 
+func (h *Hub) BroadcastOnlineUsers() {
+	h.broadcastOnlineUsers()
+}
+
 func (h *Hub) buildUserInfoMsg(client *Client) []byte {
+	canModify := false
+	if client.Username != "" {
+		profile, err := auth.LoadProfile(config.UsersDir, client.Username)
+		if err == nil {
+			perms := config.ResolvePermissionsForGroup(profile.PermissionGroup)
+			canModify = perms["modify_user_permission_group"]
+		}
+	} else {
+		perms := config.ResolvePermissionsForGroup("default")
+		canModify = perms["modify_user_permission_group"]
+	}
+
 	msg := models.Message{
-		Type:            "user_info",
-		Username:        client.Username,
-		DisplayName:     client.DisplayName,
-		PermissionGroup: client.PermissionGroup,
-		IsLoggedIn:      client.Username != "",
+		Type:                     "user_info",
+		Username:                 client.Username,
+		DisplayName:              client.DisplayName,
+		PermissionGroup:          client.PermissionGroup,
+		IsLoggedIn:               client.Username != "",
+		CanModifyPermissionGroup: canModify,
 	}
 	data, _ := json.Marshal(msg)
 	return data

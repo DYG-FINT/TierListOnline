@@ -182,6 +182,7 @@ function handleMessage(msg) {
             state.displayName = msg.display_name || '游客';
             state.permissionGroup = msg.permission_group || 'default';
             state.isLoggedIn = msg.is_logged_in || false;
+            state.canModifyPermissionGroup = msg.can_modify_permission_group || false;
             if (!state.isLoggedIn) {
                 showToast('当前为游客状态，请点击右上角的状态指示标记进行登录', {type: 'info', duration: 5000});
             }

@@ -128,6 +128,16 @@ func UpdatePassword(usersDir, username, newPassword string) error {
 	return saveProfile(usersDir, username, profile)
 }
 
+func UpdatePermissionGroup(usersDir, username, permissionGroup string) error {
+	profile, err := LoadProfile(usersDir, username)
+	if err != nil {
+		return err
+	}
+
+	profile.PermissionGroup = permissionGroup
+	return saveProfile(usersDir, username, profile)
+}
+
 func UpdateDisplayName(usersDir, username, displayName string) error {
 	profile, err := LoadProfile(usersDir, username)
 	if err != nil {

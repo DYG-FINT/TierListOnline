@@ -200,6 +200,121 @@ func HandleChangePassword(usersDir string, sm *SessionManager) http.HandlerFunc 
 	}
 }
 
+func HandleListPermissionGroups(sm *SessionManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, 405, authResponse{Message: "方法不允许"})
+			return
+		}
+
+		ip := getClientIP(r)
+		permGroup := "default"
+
+		token := getSessionToken(r)
+		if token != "" {
+			session, ok := sm.Validate(token)
+			if ok && session.LoggedIn && session.Username != "" {
+				profile, err := LoadProfile(config.UsersDir, session.Username)
+				if err == nil {
+					permGroup = profile.PermissionGroup
+				}
+			}
+		}
+
+		if !config.IsWhitelistIP(ip) {
+			perms := config.ResolvePermissionsForGroup(permGroup)
+			if !perms["modify_user_permission_group"] {
+				writeJSON(w, 403, authResponse{Message: "你没有权限获取权限组列表"})
+				return
+			}
+		}
+
+		groups := config.GetPermissionGroupNames()
+		writeJSON(w, 200, map[string]interface{}{
+			"success": true,
+			"groups":  groups,
+		})
+	}
+}
+
+type modifyPermissionGroupRequest struct {
+	Username        string `json:"username"`
+	PermissionGroup string `json:"permission_group"`
+}
+
+func HandleModifyPermissionGroup(usersDir string, sm *SessionManager, onChanged func()) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, 405, authResponse{Message: "方法不允许"})
+			return
+		}
+
+		token := getSessionToken(r)
+		session, ok := sm.Validate(token)
+		if !ok || !session.LoggedIn {
+			writeJSON(w, 401, authResponse{Message: "请先登录"})
+			return
+		}
+
+		profile, err := LoadProfile(usersDir, session.Username)
+		if err != nil {
+			writeJSON(w, 500, authResponse{Message: "读取用户信息失败"})
+			return
+		}
+
+		ip := getClientIP(r)
+		if !config.IsWhitelistIP(ip) {
+			perms := config.ResolvePermissionsForGroup(profile.PermissionGroup)
+			if !perms["modify_user_permission_group"] {
+				writeJSON(w, 403, authResponse{Message: "你没有权限修改用户权限组"})
+				return
+			}
+		}
+
+		var req modifyPermissionGroupRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, 400, authResponse{Message: "请求格式错误"})
+			return
+		}
+
+		if req.Username == "" || req.PermissionGroup == "" {
+			writeJSON(w, 400, authResponse{Message: "用户名和权限组不能为空"})
+			return
+		}
+
+		// Verify target user exists
+		if _, err := LoadProfile(usersDir, req.Username); err != nil {
+			writeJSON(w, 404, authResponse{Message: "目标用户不存在"})
+			return
+		}
+
+		// Verify permission group exists
+		groups := config.GetPermissionGroupNames()
+		found := false
+		for _, g := range groups {
+			if g == req.PermissionGroup {
+				found = true
+				break
+			}
+		}
+		if !found {
+			writeJSON(w, 400, authResponse{Message: "权限组不存在"})
+			return
+		}
+
+		if err := UpdatePermissionGroup(usersDir, req.Username, req.PermissionGroup); err != nil {
+			writeJSON(w, 500, authResponse{Message: "修改权限组失败"})
+			return
+		}
+
+		if onChanged != nil {
+			onChanged()
+		}
+
+		writeJSON(w, 200, authResponse{Success: true, Message: "权限组修改成功"})
+	}
+}
+
 func getClientIP(r *http.Request) string {
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 		return strings.TrimSpace(strings.Split(fwd, ",")[0])

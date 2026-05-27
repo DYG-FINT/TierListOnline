@@ -90,11 +90,15 @@ type Message struct {
 
 	// auth responses
 	Message string `json:"message,omitempty"`
+
+	// user_info
+	CanModifyPermissionGroup bool `json:"can_modify_permission_group,omitempty"`
 }
 
 type OnlineUser struct {
 	DisplayName     string `json:"display_name"`
 	PermissionGroup string `json:"permission_group"`
+	Username        string `json:"username"`
 }
 
 type FullStateMsg struct {

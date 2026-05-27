@@ -20,23 +20,24 @@ const (
 )
 
 var DefaultPermissions = map[string]bool{
-	"set_title":            false,
-	"update_label":         false,
-	"update_label_color":   false,
-	"add_row":              false,
-	"delete_row":           false,
-	"clear_row":            false,
-	"move_row":             false,
-	"upload_image":         false,
-	"move_image":           false,
-	"delete_image":         false,
-	"stage_all":            false,
-	"apply_color_sequence": false,
-	"toggle_image_fit":     false,
-	"list_presets":         false,
-	"save_preset":          false,
-	"load_preset":          false,
-	"register":             false,
+	"set_title":                    false,
+	"update_label":                 false,
+	"update_label_color":           false,
+	"add_row":                      false,
+	"delete_row":                   false,
+	"clear_row":                    false,
+	"move_row":                     false,
+	"upload_image":                 false,
+	"move_image":                   false,
+	"delete_image":                 false,
+	"stage_all":                    false,
+	"apply_color_sequence":         false,
+	"toggle_image_fit":             false,
+	"list_presets":                 false,
+	"save_preset":                  false,
+	"load_preset":                  false,
+	"register":                     false,
+	"modify_user_permission_group": false,
 }
 
 var DefaultPermissionGroups = map[string]map[string]bool{
@@ -45,23 +46,24 @@ var DefaultPermissionGroups = map[string]map[string]bool{
 
 var DefaultPermissionPresets = map[string]map[string]bool{
 	"viewer": {
-		"set_title":            false,
-		"update_label":         false,
-		"update_label_color":   false,
-		"add_row":              false,
-		"delete_row":           false,
-		"clear_row":            false,
-		"move_row":             false,
-		"upload_image":         false,
-		"move_image":           false,
-		"delete_image":         false,
-		"stage_all":            false,
-		"apply_color_sequence": false,
-		"toggle_image_fit":     false,
-		"list_presets":         false,
-		"save_preset":          false,
-		"load_preset":          false,
-		"register":             false,
+		"set_title":                    false,
+		"update_label":                 false,
+		"update_label_color":           false,
+		"add_row":                      false,
+		"delete_row":                   false,
+		"clear_row":                    false,
+		"move_row":                     false,
+		"upload_image":                 false,
+		"move_image":                   false,
+		"delete_image":                 false,
+		"stage_all":                    false,
+		"apply_color_sequence":         false,
+		"toggle_image_fit":             false,
+		"list_presets":                 false,
+		"save_preset":                  false,
+		"load_preset":                  false,
+		"register":                     false,
+		"modify_user_permission_group": false,
 	},
 	"free": {
 		"set_title":            true,
@@ -191,6 +193,23 @@ func ResolvePermissionsForGroup(groupName string) map[string]bool {
 		return DefaultPermissions
 	}
 	return resolvePermissions(group, permissionPresets)
+}
+
+func GetPermissionGroupNames() []string {
+	cfgMu.RLock()
+	defer cfgMu.RUnlock()
+	if permissionGroups == nil {
+		return mapKeys(DefaultPermissionGroups)
+	}
+	return mapKeys(permissionGroups)
+}
+
+func mapKeys(m map[string]map[string]bool) []string {
+	result := make([]string, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
 }
 
 func resolvePermissions(perms map[string]bool, presets map[string]map[string]bool) map[string]bool {
