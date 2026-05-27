@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录</title>
+<link rel="stylesheet" href="/auth/css/auth.css">
+</head>
+<body>
+<h2>登录</h2>
+<div class="form-card">
+    <div class="form-group">
+        <label>用户名</label>
+        <input id="username" type="text" maxlength="64" autocomplete="username">
+    </div>
+    <div class="form-group">
+        <label>密码</label>
+        <input id="password" type="password" maxlength="128" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="login()">登录</button>
+    <div class="error" id="error"></div>
+    <div class="links">
+        <a href="/auth/register">注册新账号</a>
+    </div>
+</div>
+<div class="back"><a href="/">返回首页</a></div>
+
+<script src="/auth/js/login.js"></script>
+</body>
+</html>

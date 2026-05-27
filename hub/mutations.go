@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"tlo/auth"
 	"tlo/config"
 	"tlo/models"
 )
@@ -466,6 +467,10 @@ func (h *Hub) loadPreset(name string) []byte {
 	return h.buildFullState()
 }
 
+var alwaysAllowed = map[string]bool{
+	"change_display_name": true,
+}
+
 func (h *Hub) handleMessage(client *Client, raw []byte) {
 	var msg models.Message
 	if err := json.Unmarshal(raw, &msg); err != nil {
@@ -473,7 +478,7 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		return
 	}
 
-	if !config.IsWhitelistIP(client.IP) && !config.HasPermission(msg.Type) {
+	if !alwaysAllowed[msg.Type] && !config.IsWhitelistIP(client.IP) && !client.HasPermission(msg.Type) {
 		log.Printf("权限不足：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
 		reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "您没有权限执行此操作"})
 		select {
@@ -490,6 +495,54 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 	var broadcast []byte
 
 	switch msg.Type {
+	case "change_display_name":
+		if msg.NewDisplayName == "" {
+			return
+		}
+		if client.Username != "" {
+			// Logged-in user: update profile.json
+			if err := auth.UpdateDisplayName(config.UsersDir, client.Username, msg.NewDisplayName); err != nil {
+				log.Printf("更新显示名称失败：%v", err)
+				reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "更新显示名称失败"})
+				select {
+				case client.send <- reject:
+				default:
+				}
+				return
+			}
+			// Update session guest_name to match
+			h.sm.UpdateGuestName(client.SessionID, msg.NewDisplayName)
+		} else {
+			// Guest: update session guest_name
+			if err := h.sm.UpdateGuestName(client.SessionID, msg.NewDisplayName); err != nil {
+				log.Printf("更新游客名称失败：%v", err)
+				return
+			}
+		}
+		client.DisplayName = msg.NewDisplayName
+
+		// Update onlineUsers entry
+		h.onlineMu.Lock()
+		if entry, ok := h.onlineUsers[client.ConnID]; ok {
+			entry.DisplayName = msg.NewDisplayName
+			if client.Username != "" {
+				entry.PermissionGroup = client.PermissionGroup
+			}
+			h.onlineUsers[client.ConnID] = entry
+		}
+		h.onlineMu.Unlock()
+
+		// Re-broadcast online users
+		h.broadcastOnlineUsers()
+
+		// Send updated user_info to the client
+		userInfo := h.buildUserInfoMsg(client)
+		select {
+		case client.send <- userInfo:
+		default:
+		}
+		return
+
 	case "set_title":
 		broadcast = h.setTitle(msg.Title)
 	case "update_label":

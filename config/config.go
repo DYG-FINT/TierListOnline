@@ -11,29 +11,32 @@ import (
 )
 
 const (
-	StateFile  = "storage/active/state.json"
-	UploadDir  = "storage/active/uploads"
-	PresetDir  = "storage/presets"
-	MaxMsgSize = 10 * 1024 * 1024 // 10 MB
+	StateFile   = "storage/active/state.json"
+	UploadDir   = "storage/active/uploads"
+	PresetDir   = "storage/presets"
+	SessionsDir = "storage/sessions"
+	UsersDir    = "storage/users"
+	MaxMsgSize  = 10 * 1024 * 1024 // 10 MB
 )
 
 var DefaultPermissions = map[string]bool{
-	"set_title":            true,
-	"update_label":         true,
-	"update_label_color":   true,
-	"add_row":              true,
-	"delete_row":           true,
-	"clear_row":            true,
-	"move_row":             true,
-	"upload_image":         true,
-	"move_image":           true,
-	"delete_image":         true,
-	"stage_all":            true,
-	"apply_color_sequence": true,
-	"toggle_image_fit":     true,
-	"list_presets":         true,
-	"save_preset":          true,
-	"load_preset":          true,
+	"set_title":            false,
+	"update_label":         false,
+	"update_label_color":   false,
+	"add_row":              false,
+	"delete_row":           false,
+	"clear_row":            false,
+	"move_row":             false,
+	"upload_image":         false,
+	"move_image":           false,
+	"delete_image":         false,
+	"stage_all":            false,
+	"apply_color_sequence": false,
+	"toggle_image_fit":     false,
+	"list_presets":         false,
+	"save_preset":          false,
+	"load_preset":          false,
+	"register":             false,
 }
 
 var DefaultPermissionGroups = map[string]map[string]bool{
@@ -41,6 +44,25 @@ var DefaultPermissionGroups = map[string]map[string]bool{
 }
 
 var DefaultPermissionPresets = map[string]map[string]bool{
+	"viewer": {
+		"set_title":            false,
+		"update_label":         false,
+		"update_label_color":   false,
+		"add_row":              false,
+		"delete_row":           false,
+		"clear_row":            false,
+		"move_row":             false,
+		"upload_image":         false,
+		"move_image":           false,
+		"delete_image":         false,
+		"stage_all":            false,
+		"apply_color_sequence": false,
+		"toggle_image_fit":     false,
+		"list_presets":         false,
+		"save_preset":          false,
+		"load_preset":          false,
+		"register":             false,
+	},
 	"free": {
 		"set_title":            true,
 		"update_label":         true,
@@ -156,6 +178,19 @@ func ApplySettings(maxSize int, extensions []string, groups map[string]map[strin
 	}
 	resolvedPermissions = resolvePermissions(permissionGroups["default"], permissionPresets)
 	whitelistIPs = ips
+}
+
+func ResolvePermissionsForGroup(groupName string) map[string]bool {
+	cfgMu.RLock()
+	defer cfgMu.RUnlock()
+	if permissionGroups == nil {
+		return DefaultPermissions
+	}
+	group, ok := permissionGroups[groupName]
+	if !ok {
+		return DefaultPermissions
+	}
+	return resolvePermissions(group, permissionPresets)
 }
 
 func resolvePermissions(perms map[string]bool, presets map[string]map[string]bool) map[string]bool {

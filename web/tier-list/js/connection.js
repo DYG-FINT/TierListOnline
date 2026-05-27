@@ -176,5 +176,27 @@ function handleMessage(msg) {
         case 'upload_rejected':
             showToast(msg.error || '上传被拒绝', {type: 'error'});
             break;
+
+        case 'user_info':
+            state.username = msg.username || '';
+            state.displayName = msg.display_name || '游客';
+            state.permissionGroup = msg.permission_group || 'default';
+            state.isLoggedIn = msg.is_logged_in || false;
+            if (!state.isLoggedIn) {
+                showToast('当前为游客状态，请点击右上角的状态指示标记进行登录', {type: 'info', duration: 5000});
+            }
+            if (document.getElementById('status-overlay').classList.contains('active')) {
+                renderStatusOverlay();
+            }
+            break;
+
+        case 'online_users':
+            state.onlineCount = msg.count;
+            state.onlineUsers = msg.users || [];
+            if (document.getElementById('status-overlay').classList.contains('active')) {
+                renderOnlineCount();
+                renderOnlineUsers();
+            }
+            break;
     }
 }

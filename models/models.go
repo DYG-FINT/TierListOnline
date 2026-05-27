@@ -74,6 +74,27 @@ type Message struct {
 
 	// upload_rejected
 	Error string `json:"error,omitempty"`
+
+	// online_users
+	Users []OnlineUser `json:"users,omitempty"`
+	Count int          `json:"count,omitempty"`
+
+	// user_info
+	Username        string `json:"username,omitempty"`
+	DisplayName     string `json:"display_name,omitempty"`
+	PermissionGroup string `json:"permission_group,omitempty"`
+	IsLoggedIn      bool   `json:"is_logged_in,omitempty"`
+
+	// change_display_name
+	NewDisplayName string `json:"new_display_name,omitempty"`
+
+	// auth responses
+	Message string `json:"message,omitempty"`
+}
+
+type OnlineUser struct {
+	DisplayName     string `json:"display_name"`
+	PermissionGroup string `json:"permission_group"`
 }
 
 type FullStateMsg struct {
@@ -83,4 +104,3 @@ type FullStateMsg struct {
 	Rows          []TierRow   `json:"rows"`
 	StagingImages []ImageItem `json:"staging_images"`
 }
-

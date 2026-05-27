@@ -10,13 +10,14 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/toast.css">
+    <link rel="stylesheet" href="css/status.css">
 </head>
 <body>
 
     <h1 contenteditable="plaintext-only">加载中...</h1>
 
     <!-- Connection Status -->
-    <div id="conn-status" title="连接中"></div>
+    <div id="conn-status" title="连接中" onclick="toggleStatusOverlay()" style="cursor:pointer;"></div>
 
     <!-- Tier List -->
     <div id="tier-wrap">
@@ -133,12 +134,27 @@
         </div>
     </div>
 
+    <!-- Status Overlay -->
+    <div id="status-overlay">
+        <div id="status-modal">
+            <button class="close-btn" onclick="closeStatusOverlay()">&times;</button>
+            <div class="online-count" id="online-count">在线: 0 人</div>
+            <div class="online-user-list" id="online-user-list"></div>
+            <div class="status-name-section">
+                <input id="status-name-input" type="text" maxlength="50" placeholder="游客">
+                <button id="status-save-name-btn">保存名称</button>
+            </div>
+            <div class="status-actions" id="status-auth-buttons"></div>
+        </div>
+    </div>
+
     <script src="js/state.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/connection.js"></script>
     <script src="js/drag-drop.js"></script>
     <script src="js/render.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/status.js"></script>
     <script src="js/main.js"></script>
 
     <footer style="text-align: center; padding: 4px 0;">

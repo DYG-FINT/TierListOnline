@@ -4,7 +4,13 @@ const state = {
     title: '',
     bg_color: '#1a1a1a',
     rows: [],
-    staging_images: []
+    staging_images: [],
+    displayName: '游客',
+    username: '',
+    permissionGroup: 'default',
+    isLoggedIn: false,
+    onlineCount: 0,
+    onlineUsers: []
 };
 
 let activeRowId = null;

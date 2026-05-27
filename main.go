@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"tlo/auth"
 	"tlo/config"
 	"tlo/hub"
 )
@@ -20,28 +21,55 @@ var embeddedWeb embed.FS
 var Version = "dev"
 
 func main() {
-	h := hub.NewHub()
+	sm := auth.NewSessionManager(config.SessionsDir)
+
+	h := hub.NewHub(sm)
 	h.LoadState()
 	go h.Run()
 
 	cssSub, _ := fs.Sub(embeddedWeb, "web/tier-list/css")
 	jsSub, _ := fs.Sub(embeddedWeb, "web/tier-list/js")
+	authCssSub, _ := fs.Sub(embeddedWeb, "web/auth/css")
+	authJsSub, _ := fs.Sub(embeddedWeb, "web/auth/js")
 	cssFS := http.FileServer(http.FS(cssSub))
 	jsFS := http.FileServer(http.FS(jsSub))
+	authCssFS := http.FileServer(http.FS(authCssSub))
+	authJsFS := http.FileServer(http.FS(authJsSub))
 	uploadsFS := http.FileServer(http.Dir(config.UploadDir))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serveHome)
 	mux.Handle("/css/", http.StripPrefix("/css/", cssFS))
 	mux.Handle("/js/", http.StripPrefix("/js/", jsFS))
+	mux.Handle("/auth/css/", http.StripPrefix("/auth/css/", authCssFS))
+	mux.Handle("/auth/js/", http.StripPrefix("/auth/js/", authJsFS))
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFS))
 	mux.HandleFunc("/ws", h.HandleWS)
 
+	// Auth API routes
+	mux.HandleFunc("/api/register", auth.HandleRegister(config.UsersDir, sm))
+	mux.HandleFunc("/api/login", auth.HandleLogin(config.UsersDir, sm))
+	mux.HandleFunc("/api/logout", auth.HandleLogout(sm))
+	mux.HandleFunc("/api/change-password", auth.HandleChangePassword(config.UsersDir, sm))
+
+	// Auth page routes
+	mux.HandleFunc("/auth/login", serveAuthPage("login"))
+	mux.HandleFunc("/auth/register", serveAuthPage("register"))
+	mux.HandleFunc("/auth/change-password", serveAuthPage("change-password"))
+
 	port := loadSettings()
 	go watchSettings()
+	go sessionCleanupLoop(sm)
 	log.Printf("Tier List 服务器启动于 http://127.0.0.1:%s", port)
 	log.Printf("服务器版本：%s", Version)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
+}
+
+func sessionCleanupLoop(sm *auth.SessionManager) {
+	for {
+		time.Sleep(10 * time.Minute)
+		sm.CleanupExpired()
+	}
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -58,13 +86,25 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func serveAuthPage(page string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := embeddedWeb.ReadFile("web/auth/" + page + ".html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
+	}
+}
+
 type serverSettings struct {
-	Port              int                          `json:"port"`
-	MaxUploadSizeMB   int                          `json:"max_upload_size_mb"`
-	AllowedExtensions []string                     `json:"allowed_extensions"`
-	PermissionPresets map[string]map[string]bool   `json:"permission_presets"`
-	PermissionGroups  map[string]map[string]bool   `json:"permission_groups"`
-	WhitelistIPs      []string                     `json:"whitelist_ips"`
+	Port              int                        `json:"port"`
+	MaxUploadSizeMB   int                        `json:"max_upload_size_mb"`
+	AllowedExtensions []string                   `json:"allowed_extensions"`
+	PermissionPresets map[string]map[string]bool `json:"permission_presets"`
+	PermissionGroups  map[string]map[string]bool `json:"permission_groups"`
+	WhitelistIPs      []string                   `json:"whitelist_ips"`
 }
 
 func loadSettings() string {

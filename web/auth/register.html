@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册</title>
+<link rel="stylesheet" href="/auth/css/auth.css">
+</head>
+<body>
+<h2>注册</h2>
+<div class="form-card">
+    <div class="form-group">
+        <label>用户名</label>
+        <input id="username" type="text" maxlength="64" autocomplete="username">
+        <div class="hint">字母、数字、下划线、连字符、点号，不含空格</div>
+    </div>
+    <div class="form-group">
+        <label>显示名称</label>
+        <input id="display-name" type="text" maxlength="50" placeholder="留空则使用用户名">
+    </div>
+    <div class="form-group">
+        <label>密码</label>
+        <input id="password" type="password" maxlength="128" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+        <label>确认密码</label>
+        <input id="confirm-password" type="password" maxlength="128" autocomplete="new-password">
+    </div>
+    <button class="btn btn-primary" onclick="register()">注册</button>
+    <div class="error" id="error"></div>
+    <div class="links">
+        <a href="/auth/login">已有账号？去登录</a>
+    </div>
+</div>
+<div class="back"><a href="/">返回首页</a></div>
+
+<script src="/auth/js/register.js"></script>
+</body>
+</html>
