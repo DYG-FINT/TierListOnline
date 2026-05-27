@@ -160,10 +160,18 @@ function setupMobileImageEvents(div, img) {
         if (_lastTapImageId === imageId && (now - _lastTapTime) < 350) {
             _lastTapTime = 0;
             _lastTapImageId = null;
+            var timerHadFired = !_pendingTapTimer;
             if (_pendingTapTimer) {
                 clearTimeout(_pendingTapTimer);
                 _pendingTapTimer = null;
                 _pendingTapImageId = null;
+            }
+            if (timerHadFired) {
+                if (selectedImageId === imageId) {
+                    deselectImage();
+                } else {
+                    selectImage(imageId);
+                }
             }
             openImageFullscreen(img.url);
             return;
@@ -187,7 +195,7 @@ function setupMobileImageEvents(div, img) {
                 selectImage(imageId);
             }
             _pendingTapImageId = null;
-        }, 200);
+        }, 100);
     }, {passive: false});
 
     div.addEventListener('touchcancel', function() {

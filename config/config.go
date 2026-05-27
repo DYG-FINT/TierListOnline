@@ -73,15 +73,16 @@ var DefaultPermissionPresets = map[string]map[string]bool{
 		"move_image":   true,
 	},
 	"collaborative": {
-		"#sort_only": true,
-		"#reset":     true,
-		"stage_all":  true,
+		"#sort_only":   true,
+		"#reset":       true,
+		"delete_image": true,
+		"stage_all":    true,
 	},
 }
 
 var (
 	cfgMu               sync.RWMutex
-	maxUploadSizeMB     int      = 10
+	maxUploadSizeMB     int = 10
 	allowedExtensions   []string
 	permissionGroups    map[string]map[string]bool
 	permissionPresets   map[string]map[string]bool

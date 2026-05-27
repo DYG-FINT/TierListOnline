@@ -118,7 +118,6 @@ function handleMessage(msg) {
         case 'image_moved':
             moveImageInState(msg.image_id, msg.target_row_id);
             moveImageDOM(msg.image_id, msg.target_row_id);
-            if (selectedImageId === msg.image_id) deselectImage();
             break;
 
         case 'image_deleted':
