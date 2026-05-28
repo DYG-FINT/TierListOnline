@@ -96,9 +96,10 @@ type Message struct {
 }
 
 type OnlineUser struct {
-	DisplayName     string `json:"display_name"`
-	PermissionGroup string `json:"permission_group"`
-	Username        string `json:"username"`
+	DisplayName              string `json:"display_name"`
+	PermissionGroup          string `json:"permission_group"`
+	Username                 string `json:"username"`
+	CanModifyPermissionGroup bool   `json:"can_modify_permission_group"`
 }
 
 type FullStateMsg struct {

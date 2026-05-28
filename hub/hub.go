@@ -65,7 +65,7 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-			log.Printf("客户端 %s 已连接，当前会话数：%d", client.IP, len(h.clients))
+			log.Printf("用户 %s（%s）已连接，当前会话数：%d", client.DisplayName, client.IP, len(h.clients))
 
 			h.onlineMu.Lock()
 			h.onlineUsers[client.ConnID] = onlineUserEntry{
@@ -82,7 +82,7 @@ func (h *Hub) Run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
-			log.Printf("客户端 %s 已断开，当前会话数：%d", client.IP, len(h.clients))
+			log.Printf("用户 %s（%s）已断开，当前会话数：%d", client.DisplayName, client.IP, len(h.clients))
 
 			h.onlineMu.Lock()
 			delete(h.onlineUsers, client.ConnID)
@@ -135,10 +135,13 @@ func (h *Hub) buildOnlineUsersMsg() []byte {
 			}
 		}
 
+		canModify := config.ResolvePermissionsForGroup(permGroup)["modify_user_permission_group"]
+
 		users = append(users, models.OnlineUser{
-			DisplayName:     displayName,
-			PermissionGroup: permGroup,
-			Username:        entry.Username,
+			DisplayName:              displayName,
+			PermissionGroup:          permGroup,
+			Username:                 entry.Username,
+			CanModifyPermissionGroup: canModify,
 		})
 	}
 

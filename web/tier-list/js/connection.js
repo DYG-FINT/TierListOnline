@@ -194,6 +194,15 @@ function handleMessage(msg) {
         case 'online_users':
             state.onlineCount = msg.count;
             state.onlineUsers = msg.users || [];
+            if (state.username) {
+                for (var i = 0; i < state.onlineUsers.length; i++) {
+                    if (state.onlineUsers[i].username === state.username) {
+                        state.permissionGroup = state.onlineUsers[i].permission_group;
+                        state.canModifyPermissionGroup = state.onlineUsers[i].can_modify_permission_group || false;
+                        break;
+                    }
+                }
+            }
             if (document.getElementById('status-overlay').classList.contains('active')) {
                 renderOnlineCount();
                 renderOnlineUsers();
