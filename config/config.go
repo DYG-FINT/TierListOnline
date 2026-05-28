@@ -105,13 +105,14 @@ var DefaultPermissionPresets = map[string]map[string]bool{
 }
 
 var (
-	cfgMu               sync.RWMutex
-	maxUploadSizeMB     int = 10
-	allowedExtensions   []string
-	permissionGroups    map[string]map[string]bool
-	permissionPresets   map[string]map[string]bool
-	resolvedPermissions map[string]bool
-	whitelistIPs        []string
+	cfgMu                  sync.RWMutex
+	maxUploadSizeMB        int = 10
+	allowedExtensions      []string
+	permissionGroups       map[string]map[string]bool
+	permissionPresets      map[string]map[string]bool
+	resolvedPermissions    map[string]bool
+	whitelistIPs           []string
+	newUserPermissionGroup string = "default"
 )
 
 func GetMaxUploadSizeMB() int {
@@ -163,7 +164,7 @@ func IsWhitelistIP(ip string) bool {
 	return false
 }
 
-func ApplySettings(maxSize int, extensions []string, groups map[string]map[string]bool, presets map[string]map[string]bool, ips []string) {
+func ApplySettings(maxSize int, extensions []string, groups map[string]map[string]bool, presets map[string]map[string]bool, ips []string, defaultGroup string) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
 	if maxSize > 0 {
@@ -180,6 +181,9 @@ func ApplySettings(maxSize int, extensions []string, groups map[string]map[strin
 	}
 	resolvedPermissions = resolvePermissions(permissionGroups["default"], permissionPresets)
 	whitelistIPs = ips
+	if defaultGroup != "" {
+		newUserPermissionGroup = defaultGroup
+	}
 }
 
 func ResolvePermissionsForGroup(groupName string) map[string]bool {
@@ -202,6 +206,12 @@ func GetPermissionGroupNames() []string {
 		return mapKeys(DefaultPermissionGroups)
 	}
 	return mapKeys(permissionGroups)
+}
+
+func GetNewUserPermissionGroup() string {
+	cfgMu.RLock()
+	defer cfgMu.RUnlock()
+	return newUserPermissionGroup
 }
 
 func mapKeys(m map[string]map[string]bool) []string {

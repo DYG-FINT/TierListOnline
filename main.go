@@ -103,18 +103,23 @@ func serveAuthPage(page string) http.HandlerFunc {
 }
 
 type serverSettings struct {
-	Port              int                        `json:"port"`
-	MaxUploadSizeMB   int                        `json:"max_upload_size_mb"`
-	AllowedExtensions []string                   `json:"allowed_extensions"`
-	PermissionPresets map[string]map[string]bool `json:"permission_presets"`
-	PermissionGroups  map[string]map[string]bool `json:"permission_groups"`
-	WhitelistIPs      []string                   `json:"whitelist_ips"`
+	Port                   int                        `json:"port"`
+	MaxUploadSizeMB        int                        `json:"max_upload_size_mb"`
+	NewUserPermissionGroup string                     `json:"new_user_permission_group"`
+	PermissionGroups       map[string]map[string]bool `json:"permission_groups"`
+	PermissionPresets      map[string]map[string]bool `json:"permission_presets"`
+	WhitelistIPs           []string                   `json:"whitelist_ips"`
+	AllowedExtensions      []string                   `json:"allowed_extensions"`
 }
 
 func loadSettings() string {
 	defaultSettings := serverSettings{
-		Port:            23331,
-		MaxUploadSizeMB: 10,
+		Port:                   23331,
+		MaxUploadSizeMB:        10,
+		NewUserPermissionGroup: "default",
+		PermissionGroups:       config.DefaultPermissionGroups,
+		PermissionPresets:      config.DefaultPermissionPresets,
+		WhitelistIPs:           []string{"127.0.0.1"},
 		AllowedExtensions: []string{
 			".png", ".jpg", ".jpeg", ".gif", ".webp",
 			".ico", ".bmp", ".svg", ".svgz",
@@ -122,9 +127,6 @@ func loadSettings() string {
 			".avif", ".heic", ".heif",
 			".jp2", ".jpx", ".j2k", ".jxl",
 		},
-		PermissionPresets: config.DefaultPermissionPresets,
-		PermissionGroups:  config.DefaultPermissionGroups,
-		WhitelistIPs:      []string{"127.0.0.1"},
 	}
 
 	data, err := os.ReadFile("settings.json")
@@ -160,7 +162,7 @@ func loadSettings() string {
 }
 
 func applySettings(s serverSettings) {
-	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.PermissionGroups, s.PermissionPresets, s.WhitelistIPs)
+	config.ApplySettings(s.MaxUploadSizeMB, s.AllowedExtensions, s.PermissionGroups, s.PermissionPresets, s.WhitelistIPs, s.NewUserPermissionGroup)
 }
 
 func watchSettings() {

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"tlo/config"
 )
 
 type UserProfile struct {
@@ -85,7 +87,7 @@ func CreateUser(usersDir, username, password, displayName string) error {
 	profile := UserProfile{
 		DisplayName:     displayName,
 		PasswordHash:    hash,
-		PermissionGroup: "default",
+		PermissionGroup: config.GetNewUserPermissionGroup(),
 	}
 
 	if err := os.MkdirAll(userDir, 0755); err != nil {
