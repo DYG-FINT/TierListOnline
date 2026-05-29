@@ -61,7 +61,22 @@ func HandleRegister(usersDir string, sm *SessionManager) http.HandlerFunc {
 
 		ip := getClientIP(r)
 		if !config.IsWhitelistIP(ip) {
-			perms := config.ResolvePermissionsForGroup("default")
+			permGroup := "default"
+			var userPerms map[string]bool
+
+			token := getSessionToken(r)
+			if token != "" {
+				session, ok := sm.Validate(token)
+				if ok && session.LoggedIn && session.Username != "" {
+					profile, err := LoadProfile(config.UsersDir, session.Username)
+					if err == nil {
+						permGroup = profile.PermissionGroup
+						userPerms = profile.Permissions
+					}
+				}
+			}
+
+			perms := config.ResolvePermissionsForUser(permGroup, userPerms)
 			if !perms["register"] {
 				writeJSON(w, 403, authResponse{Message: "注册功能暂不可用"})
 				return
