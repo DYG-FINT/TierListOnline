@@ -33,6 +33,7 @@ type onlineUserEntry struct {
 	DisplayName     string
 	PermissionGroup string
 	Username        string // empty for guests
+	IP              string
 }
 
 type Client struct {
@@ -72,6 +73,7 @@ func (h *Hub) Run() {
 				DisplayName:     client.DisplayName,
 				PermissionGroup: client.PermissionGroup,
 				Username:        client.Username,
+				IP:              client.IP,
 			}
 			h.onlineMu.Unlock()
 
@@ -137,7 +139,7 @@ func (h *Hub) buildOnlineUsersMsg() []byte {
 			}
 		}
 
-		canModify := config.ResolvePermissionsForUser(permGroup, userPerms)["modify_user_permission_group"]
+		canModify := config.ResolvePermissionsForUser(permGroup, userPerms)["modify_user_permission_group"] || config.IsWhitelistIP(entry.IP)
 
 		users = append(users, models.OnlineUser{
 			DisplayName:              displayName,
@@ -166,16 +168,16 @@ func (h *Hub) BroadcastOnlineUsers() {
 }
 
 func (h *Hub) buildUserInfoMsg(client *Client) []byte {
-	canModify := false
+	canModify := config.IsWhitelistIP(client.IP)
 	if client.Username != "" {
 		profile, err := auth.LoadProfile(config.UsersDir, client.Username)
 		if err == nil {
 			perms := config.ResolvePermissionsForUser(profile.PermissionGroup, profile.Permissions)
-			canModify = perms["modify_user_permission_group"]
+			canModify = canModify || perms["modify_user_permission_group"]
 		}
 	} else {
 		perms := config.ResolvePermissionsForUser("default", nil)
-		canModify = perms["modify_user_permission_group"]
+		canModify = canModify || perms["modify_user_permission_group"]
 	}
 
 	msg := models.Message{
