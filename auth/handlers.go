@@ -209,6 +209,7 @@ func HandleListPermissionGroups(sm *SessionManager) http.HandlerFunc {
 
 		ip := getClientIP(r)
 		permGroup := "default"
+		var userPerms map[string]bool
 
 		token := getSessionToken(r)
 		if token != "" {
@@ -217,12 +218,13 @@ func HandleListPermissionGroups(sm *SessionManager) http.HandlerFunc {
 				profile, err := LoadProfile(config.UsersDir, session.Username)
 				if err == nil {
 					permGroup = profile.PermissionGroup
+					userPerms = profile.Permissions
 				}
 			}
 		}
 
 		if !config.IsWhitelistIP(ip) {
-			perms := config.ResolvePermissionsForGroup(permGroup)
+			perms := config.ResolvePermissionsForUser(permGroup, userPerms)
 			if !perms["modify_user_permission_group"] {
 				writeJSON(w, 403, authResponse{Message: "你没有权限获取权限组列表"})
 				return
@@ -264,7 +266,7 @@ func HandleModifyPermissionGroup(usersDir string, sm *SessionManager, onChanged 
 
 		ip := getClientIP(r)
 		if !config.IsWhitelistIP(ip) {
-			perms := config.ResolvePermissionsForGroup(profile.PermissionGroup)
+			perms := config.ResolvePermissionsForUser(profile.PermissionGroup, profile.Permissions)
 			if !perms["modify_user_permission_group"] {
 				writeJSON(w, 403, authResponse{Message: "你没有权限修改用户权限组"})
 				return

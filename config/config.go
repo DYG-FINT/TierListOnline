@@ -189,14 +189,42 @@ func ApplySettings(maxSize int, extensions []string, groups map[string]map[strin
 func ResolvePermissionsForGroup(groupName string) map[string]bool {
 	cfgMu.RLock()
 	defer cfgMu.RUnlock()
+	return resolvePermissionsForGroupLocked(groupName)
+}
+
+func resolvePermissionsForGroupLocked(groupName string) map[string]bool {
 	if permissionGroups == nil {
-		return DefaultPermissions
+		return copyPermissions(DefaultPermissions)
 	}
 	group, ok := permissionGroups[groupName]
 	if !ok {
-		return DefaultPermissions
+		return copyPermissions(DefaultPermissions)
 	}
 	return resolvePermissions(group, permissionPresets)
+}
+
+func ResolvePermissionsForUser(groupName string, userPerms map[string]bool) map[string]bool {
+	cfgMu.RLock()
+	defer cfgMu.RUnlock()
+
+	base := resolvePermissionsForGroupLocked(groupName)
+
+	if len(userPerms) > 0 {
+		userResolved := resolvePermissions(userPerms, permissionPresets)
+		for k, v := range userResolved {
+			base[k] = v
+		}
+	}
+
+	return base
+}
+
+func copyPermissions(src map[string]bool) map[string]bool {
+	dst := make(map[string]bool, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
 
 func GetPermissionGroupNames() []string {

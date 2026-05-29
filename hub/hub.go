@@ -127,15 +127,17 @@ func (h *Hub) buildOnlineUsersMsg() []byte {
 		permGroup := entry.PermissionGroup
 
 		// Re-read profile for logged-in users to support hot-reload
+		var userPerms map[string]bool
 		if entry.Username != "" {
 			profile, err := auth.LoadProfile(config.UsersDir, entry.Username)
 			if err == nil {
 				displayName = profile.DisplayName
 				permGroup = profile.PermissionGroup
+				userPerms = profile.Permissions
 			}
 		}
 
-		canModify := config.ResolvePermissionsForGroup(permGroup)["modify_user_permission_group"]
+		canModify := config.ResolvePermissionsForUser(permGroup, userPerms)["modify_user_permission_group"]
 
 		users = append(users, models.OnlineUser{
 			DisplayName:              displayName,
@@ -168,11 +170,11 @@ func (h *Hub) buildUserInfoMsg(client *Client) []byte {
 	if client.Username != "" {
 		profile, err := auth.LoadProfile(config.UsersDir, client.Username)
 		if err == nil {
-			perms := config.ResolvePermissionsForGroup(profile.PermissionGroup)
+			perms := config.ResolvePermissionsForUser(profile.PermissionGroup, profile.Permissions)
 			canModify = perms["modify_user_permission_group"]
 		}
 	} else {
-		perms := config.ResolvePermissionsForGroup("default")
+		perms := config.ResolvePermissionsForUser("default", nil)
 		canModify = perms["modify_user_permission_group"]
 	}
 
@@ -191,6 +193,7 @@ func (h *Hub) buildUserInfoMsg(client *Client) []byte {
 func (h *Hub) resolveClientUser(r *http.Request) (sessionID, username, displayName, permGroup string, permissions map[string]bool) {
 	permGroup = "default"
 	displayName = "游客"
+	var userPerms map[string]bool
 
 	cookie, err := r.Cookie("session_token")
 	if err == nil && cookie.Value != "" {
@@ -204,6 +207,7 @@ func (h *Hub) resolveClientUser(r *http.Request) (sessionID, username, displayNa
 				if err == nil {
 					displayName = profile.DisplayName
 					permGroup = profile.PermissionGroup
+					userPerms = profile.Permissions
 				} else {
 					displayName = s.GuestName
 				}
@@ -223,12 +227,13 @@ func (h *Hub) resolveClientUser(r *http.Request) (sessionID, username, displayNa
 		}
 	}
 
-	permissions = config.ResolvePermissionsForGroup(permGroup)
+	permissions = config.ResolvePermissionsForUser(permGroup, userPerms)
 	return
 }
 
 func (c *Client) HasPermission(perm string) bool {
 	permGroup := c.PermissionGroup
+	var userPerms map[string]bool
 
 	// Re-read profile for logged-in users to support hot-reload of permission_group
 	if c.Username != "" {
@@ -236,10 +241,11 @@ func (c *Client) HasPermission(perm string) bool {
 		if err == nil {
 			permGroup = profile.PermissionGroup
 			c.PermissionGroup = profile.PermissionGroup
+			userPerms = profile.Permissions
 		}
 	}
 
-	perms := config.ResolvePermissionsForGroup(permGroup)
+	perms := config.ResolvePermissionsForUser(permGroup, userPerms)
 	val, ok := perms[perm]
 	if !ok {
 		return false

@@ -13,9 +13,10 @@ import (
 )
 
 type UserProfile struct {
-	DisplayName     string `json:"display_name"`
-	PasswordHash    string `json:"password_hash"`
-	PermissionGroup string `json:"permission_group"`
+	DisplayName     string          `json:"display_name"`
+	PasswordHash    string          `json:"password_hash"`
+	PermissionGroup string          `json:"permission_group"`
+	Permissions     map[string]bool `json:"permissions"`
 }
 
 func ValidateUsername(name string) error {
@@ -88,6 +89,7 @@ func CreateUser(usersDir, username, password, displayName string) error {
 		DisplayName:     displayName,
 		PasswordHash:    hash,
 		PermissionGroup: config.GetNewUserPermissionGroup(),
+		Permissions:     make(map[string]bool),
 	}
 
 	if err := os.MkdirAll(userDir, 0755); err != nil {
@@ -111,6 +113,9 @@ func LoadProfile(usersDir, username string) (*UserProfile, error) {
 	var profile UserProfile
 	if err := json.Unmarshal(data, &profile); err != nil {
 		return nil, err
+	}
+	if profile.Permissions == nil {
+		profile.Permissions = make(map[string]bool)
 	}
 	return &profile, nil
 }
