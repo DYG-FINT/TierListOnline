@@ -181,6 +181,16 @@ func (h *Hub) savePresetToDisk(name string) error {
 	// Copy uploads directory
 	srcUploads := config.UploadDir
 	dstUploads := filepath.Join(presetPath, "uploads")
+
+	if _, err := os.Stat(srcUploads); err != nil {
+    		if os.IsNotExist(err) {
+    			// 源目录不存在，创建一个空 uploads 目录
+    			return os.MkdirAll(dstUploads, 0755)
+    		}
+    		// 其他错误
+    		return err
+    	}
+
 	return copyDir(srcUploads, dstUploads)
 }
 
