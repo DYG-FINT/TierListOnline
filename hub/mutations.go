@@ -436,6 +436,51 @@ func (h *Hub) toggleImageFit(imageID string) []byte {
 	return b
 }
 
+func (h *Hub) setImageColor(imageID, color string) []byte {
+	if color != "" {
+		if len(color) != 7 || color[0] != '#' {
+			color = ""
+		}
+	}
+
+	h.mu.Lock()
+	found := false
+	for i := range h.state.Rows {
+		for j := range h.state.Rows[i].Images {
+			if h.state.Rows[i].Images[j].ID == imageID {
+				h.state.Rows[i].Images[j].Color = color
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for i := range h.state.StagingImages {
+			if h.state.StagingImages[i].ID == imageID {
+				h.state.StagingImages[i].Color = color
+				found = true
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if !found {
+		return nil
+	}
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{
+		Type:    "image_color_updated",
+		ImageID: imageID,
+		Color:   color,
+	})
+	return b
+}
+
 func (h *Hub) renameImage(imageID, imageName string) ([]byte, []byte) {
 	trimmed := strings.TrimSpace(imageName)
 	truncated := false
@@ -684,6 +729,11 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		broadcast = h.applyColorSequence(msg.RowID)
 	case "toggle_image_fit":
 		broadcast = h.toggleImageFit(msg.ImageID)
+	case "set_image_color":
+		broadcast = h.setImageColor(msg.ImageID, msg.Color)
+		if broadcast == nil {
+			return
+		}
 	case "rename_image":
 		var directResp []byte
 		broadcast, directResp = h.renameImage(msg.ImageID, msg.ImageName)

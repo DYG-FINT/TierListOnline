@@ -35,6 +35,7 @@ var DefaultPermissions = map[string]bool{
 	"stage_all":                    false,
 	"apply_color_sequence":         false,
 	"toggle_image_fit":             false,
+	"set_image_color":              false,
 	"list_presets":                 false,
 	"save_preset":                  false,
 	"load_preset":                  false,
@@ -63,6 +64,7 @@ var DefaultPermissionPresets = map[string]map[string]bool{
 		"stage_all":                    false,
 		"apply_color_sequence":         false,
 		"toggle_image_fit":             false,
+		"set_image_color":              false,
 		"list_presets":                 false,
 		"save_preset":                  false,
 		"load_preset":                  false,
@@ -85,6 +87,7 @@ var DefaultPermissionPresets = map[string]map[string]bool{
 		"stage_all":            true,
 		"apply_color_sequence": true,
 		"toggle_image_fit":     true,
+		"set_image_color":      true,
 		"list_presets":         true,
 		"save_preset":          true,
 		"load_preset":          true,
@@ -308,6 +311,7 @@ var ColorPalette = []string{
 	"#858585",
 	"#CFCFCF",
 	"#F7F7F7",
+	"", // transparent — appended at end to avoid affecting color sequence
 }
 
 var DefaultRows = []models.TierRow{

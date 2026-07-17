@@ -400,7 +400,22 @@ function openImageFullscreen(url, name, imageId, displayType) {
     nameBar.textContent = name || '';
     nameBar.title = name || '';
     currentFullscreenImageId = imageId || null;
+    var currentImg = findImageInState(imageId);
+    highlightFullscreenSwatch(currentImg ? (currentImg.color || '') : '');
     document.getElementById('image-overlay').classList.add('active');
+}
+
+function selectFullscreenColor(color) {
+    if (!currentFullscreenImageId) return;
+    var currentImg = findImageInState(currentFullscreenImageId);
+    var currentColor = currentImg ? (currentImg.color || '') : '';
+    if (normalizeColor(color) === normalizeColor(currentColor)) return;
+
+    var el = document.querySelector('.character[data-image-id="' + currentFullscreenImageId + '"]');
+    if (el) el.style.backgroundColor = color || '';
+    highlightFullscreenSwatch(color);
+
+    send({type: 'set_image_color', image_id: currentFullscreenImageId, color: color});
 }
 
 document.getElementById('image-name-bar').addEventListener('input', function() {
@@ -431,4 +446,11 @@ document.addEventListener('keydown', function(e) {
         clearTimeout(imageNameDebounceTimer);
         currentFullscreenImageId = null;
     }
+});
+
+document.getElementById('fullscreen-color-select').addEventListener('click', function(e) {
+    var span = e.target.closest('span');
+    if (!span) return;
+    var color = span.getAttribute('data-color') || '';
+    selectFullscreenColor(color);
 });

@@ -26,6 +26,7 @@ type ImageItem struct {
 	URL         string `json:"url"`
 	FitWidth    bool   `json:"fit_width"`
 	DisplayType string `json:"display_type,omitempty"`
+	Color       string `json:"color,omitempty"`
 }
 
 type Message struct {

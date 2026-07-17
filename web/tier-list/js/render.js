@@ -69,6 +69,9 @@ function renderCharacter(img, container) {
     var div = document.createElement('div');
     div.className = 'character' + (img.fit_width ? ' fit-width' : '');
     div.setAttribute('data-image-id', img.id);
+    if (img.color) {
+        div.style.backgroundColor = img.color;
+    }
 
     if (isMobileDevice) {
         setupMobileImageEvents(div, img);
@@ -290,14 +293,39 @@ function moveAllImagesToStaging() {
 function highlightBgSwatch(color) {
     var swatches = document.querySelectorAll('#backgroundcolorselect span');
     for (var i = 0; i < swatches.length; i++) {
-        swatches[i].classList.toggle('selected', normalizeColor(swatches[i].style.background) === normalizeColor(color));
+        var swatchColor = swatches[i].getAttribute('data-color');
+        if (swatchColor === null) swatchColor = swatches[i].style.background;
+        swatches[i].classList.toggle('selected', normalizeColor(swatchColor) === normalizeColor(color));
     }
 }
 
 function highlightModalSwatch(color) {
     var swatches = document.querySelectorAll('#color-select span');
     for (var i = 0; i < swatches.length; i++) {
-        swatches[i].classList.toggle('selected', normalizeColor(swatches[i].style.background) === normalizeColor(color));
+        var swatchColor = swatches[i].getAttribute('data-color');
+        if (swatchColor === null) swatchColor = swatches[i].style.background;
+        swatches[i].classList.toggle('selected', normalizeColor(swatchColor) === normalizeColor(color));
+    }
+}
+
+function highlightFullscreenSwatch(color) {
+    var swatches = document.querySelectorAll('#fullscreen-color-select span');
+    for (var i = 0; i < swatches.length; i++) {
+        var swatchColor = swatches[i].getAttribute('data-color') || '';
+        swatches[i].classList.toggle('selected', normalizeColor(swatchColor) === normalizeColor(color));
+    }
+}
+
+function applyAllImageColors() {
+    var chars = document.querySelectorAll('.character');
+    for (var i = 0; i < chars.length; i++) {
+        var id = chars[i].getAttribute('data-image-id');
+        var img = findImageInState(id);
+        if (img && img.color) {
+            chars[i].style.backgroundColor = img.color;
+        } else {
+            chars[i].style.backgroundColor = '';
+        }
     }
 }
 

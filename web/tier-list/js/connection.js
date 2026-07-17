@@ -61,6 +61,7 @@ function handleMessage(msg) {
             state.rows = msg.rows;
             state.staging_images = msg.staging_images;
             renderAll();
+            applyAllImageColors();
             if (currentFullscreenImageId) {
                 var curImg = findImageInState(currentFullscreenImageId);
                 if (curImg) {
@@ -172,6 +173,18 @@ function handleMessage(msg) {
                 } else {
                     el.classList.remove('fit-width');
                 }
+            }
+            break;
+
+        case 'image_color_updated':
+            var colorImg = findImageInState(msg.image_id);
+            if (colorImg) colorImg.color = msg.color;
+            var colorEl = document.querySelector('.character[data-image-id="' + msg.image_id + '"]');
+            if (colorEl) {
+                colorEl.style.backgroundColor = msg.color || '';
+            }
+            if (currentFullscreenImageId === msg.image_id) {
+                highlightFullscreenSwatch(msg.color);
             }
             break;
 
