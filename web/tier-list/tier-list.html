@@ -39,6 +39,7 @@
         <label class="file-btn" style="display:inline-block;cursor:pointer;">选择文件
             <input id="file-input" type="file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/ico, image/x-icon, image/vnd.microsoft.icon, image/bmp, image/svg+xml, image/tiff, image/avif, image/heic, image/heif, image/jp2, image/jxl" multiple style="display:none;">
         </label>
+        <button id="add-text-btn">添加文字</button>
         <button id="color-picker-link" onclick="toggleBgColorPicker()">更改背景颜色</button>
         <button id="stage-all-btn" class="reset-button">全部放入暂存区<span id="stage-all-progress" class="reset-progress"></span></button>
         <button id="reset-btn" class="reset-button">重置<span id="reset-progress" class="reset-progress"></span></button>
@@ -158,6 +159,18 @@
             <div class="confirm-buttons">
                 <button id="confirm-cancel-btn">取消</button>
                 <button id="confirm-ok-btn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Text Dialog -->
+    <div id="add-text-overlay">
+        <div id="add-text-modal">
+            <h3>添加文字</h3>
+            <textarea id="add-text-input" maxlength="128" placeholder="请输入文字内容" rows="1"></textarea>
+            <div class="add-text-buttons">
+                <button id="add-text-close-btn">取消</button>
+                <button id="add-text-confirm-btn">添加</button>
             </div>
         </div>
     </div>

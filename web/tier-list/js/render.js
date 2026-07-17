@@ -76,10 +76,19 @@ function renderCharacter(img, container) {
         setupDesktopImageEvents(div, img);
     }
 
-    var imgEl = document.createElement('img');
-    imgEl.src = img.url;
-    imgEl.alt = '';
-    div.appendChild(imgEl);
+    if (img.name) div.title = img.name;
+
+    if (img.display_type === 'text') {
+        var textEl = document.createElement('span');
+        textEl.className = 'text-content';
+        textEl.textContent = img.name || '';
+        div.appendChild(textEl);
+    } else {
+        var imgEl = document.createElement('img');
+        imgEl.src = img.url;
+        imgEl.alt = '';
+        div.appendChild(imgEl);
+    }
 
     container.appendChild(div);
 }
@@ -99,7 +108,7 @@ function setupDesktopImageEvents(div, img) {
     });
     div.addEventListener('pointerup', function(e) {
         if (pointerStart && Math.abs(e.clientX - pointerStart.x) < 4 && Math.abs(e.clientY - pointerStart.y) < 4) {
-            openImageFullscreen(img.url, img.name, img.id);
+            openImageFullscreen(img.url, img.name, img.id, img.display_type);
         }
         pointerStart = null;
     });
@@ -173,7 +182,7 @@ function setupMobileImageEvents(div, img) {
                     selectImage(imageId);
                 }
             }
-            openImageFullscreen(img.url, img.name, img.id);
+            openImageFullscreen(img.url, img.name, img.id, img.display_type);
             return;
         }
 

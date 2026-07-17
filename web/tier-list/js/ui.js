@@ -285,6 +285,66 @@ document.getElementById('save-preset-input').addEventListener('keydown', functio
     }
 });
 
+// ========== Add Text Dialog ==========
+
+var addTextBtn = document.getElementById('add-text-btn');
+var addTextConfirmBtn = document.getElementById('add-text-confirm-btn');
+var addTextInput = document.getElementById('add-text-input');
+var addTextPending = false;
+
+if (addTextBtn) {
+    addTextBtn.addEventListener('click', function() {
+        openAddTextDialog();
+    });
+}
+
+function openAddTextDialog() {
+    addTextInput.value = '';
+    addTextPending = false;
+    addTextConfirmBtn.disabled = false;
+    addTextInput.style.height = '';
+    document.getElementById('add-text-overlay').classList.add('active');
+    setTimeout(function() {
+        addTextInput.focus();
+    }, 100);
+}
+
+function closeAddTextDialog() {
+    document.getElementById('add-text-overlay').classList.remove('active');
+}
+
+document.getElementById('add-text-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeAddTextDialog();
+});
+
+document.getElementById('add-text-close-btn').addEventListener('click', closeAddTextDialog);
+
+addTextConfirmBtn.addEventListener('click', function() {
+    var content = addTextInput.value.trim();
+    if (!content) {
+        showToast('请输入文字内容', {type: 'error'});
+        return;
+    }
+    if (content.length > 128) {
+        showToast('文字长度超出限制', {type: 'error'});
+        return;
+    }
+    addTextPending = true;
+    addTextConfirmBtn.disabled = true;
+    send({type: 'add_text', text_content: content});
+});
+
+addTextInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !addTextPending) {
+        addTextConfirmBtn.click();
+    }
+});
+
+addTextInput.addEventListener('input', function() {
+    this.style.height = '';
+    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+});
+
 // ========== Stage All Button ==========
 
 var stageAllTimer = null;
@@ -332,8 +392,10 @@ if (stageAllBtn) {
 var currentFullscreenImageId = null;
 var imageNameDebounceTimer = null;
 
-function openImageFullscreen(url, name, imageId) {
-    document.getElementById('image-fullscreen').src = url;
+function openImageFullscreen(url, name, imageId, displayType) {
+    var imgEl = document.getElementById('image-fullscreen');
+    imgEl.src = url || '';
+    imgEl.style.display = displayType === 'text' ? 'none' : '';
     var nameBar = document.getElementById('image-name-bar');
     nameBar.textContent = name || '';
     nameBar.title = name || '';

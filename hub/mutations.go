@@ -487,6 +487,35 @@ func (h *Hub) renameImage(imageID, imageName string) ([]byte, []byte) {
 	return b, directResp
 }
 
+func (h *Hub) addText(content string) ([]byte, []byte) {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: "文字内容不能为空"})
+		return nil, r
+	}
+	if len(trimmed) > 128 {
+		r, _ := json.Marshal(models.Message{Type: "upload_rejected", Error: "文字长度超出限制"})
+		return nil, r
+	}
+
+	item := models.ImageItem{
+		ID:          config.GenID(),
+		Name:        trimmed,
+		Filename:    "",
+		URL:         "",
+		FitWidth:    false,
+		DisplayType: models.DisplayTypeText,
+	}
+
+	h.mu.Lock()
+	h.state.StagingImages = append(h.state.StagingImages, item)
+	h.mu.Unlock()
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{Type: "text_added", Image: &item})
+	return b, nil
+}
+
 func (h *Hub) listPresets() []byte {
 	names := listPresetNames()
 	if names == nil {
@@ -619,6 +648,19 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 	case "upload_image":
 		var reject []byte
 		broadcast, reject = h.uploadImage(msg.Filename, msg.Data)
+		if reject != nil {
+			select {
+			case client.send <- reject:
+			default:
+			}
+			return
+		}
+		if broadcast == nil {
+			return
+		}
+	case "add_text":
+		var reject []byte
+		broadcast, reject = h.addText(msg.TextContent)
 		if reject != nil {
 			select {
 			case client.send <- reject:

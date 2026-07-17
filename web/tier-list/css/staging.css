@@ -2,6 +2,7 @@
 #bottom-area {
     width: 100%;
     max-width: 1200px;
+    min-width: 0;
     margin: 16px 0;
     display: flex;
     gap: 12px;
@@ -34,6 +35,7 @@
 }
 #staging-wrap {
     flex: 1;
+    min-width: 0;
 }
 #staging-area {
     display: flex;
@@ -44,6 +46,9 @@
     border: 2px dashed #666;
     border-radius: 6px;
     background: #222;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;

@@ -65,9 +65,7 @@ function handleMessage(msg) {
                 var curImg = findImageInState(currentFullscreenImageId);
                 if (curImg) {
                     var curNameBar = document.getElementById('image-name-bar');
-                    if (document.activeElement !== curNameBar) {
-                        curNameBar.textContent = curImg.name || '';
-                    }
+                    curNameBar.textContent = curImg.name || '';
                     curNameBar.title = curImg.name || '';
                 }
             }
@@ -125,6 +123,17 @@ function handleMessage(msg) {
             renderCharacter(msg.image, document.getElementById('staging-area'));
             break;
 
+        case 'text_added':
+            state.staging_images.push(msg.image);
+            renderCharacter(msg.image, document.getElementById('staging-area'));
+            if (addTextPending) {
+                addTextPending = false;
+                addTextConfirmBtn.disabled = false;
+                addTextInput.value = '';
+                addTextInput.focus();
+            }
+            break;
+
         case 'image_moved':
             moveImageInState(msg.image_id, msg.target_row_id);
             moveImageDOM(msg.image_id, msg.target_row_id);
@@ -169,6 +178,12 @@ function handleMessage(msg) {
         case 'image_renamed':
             var renamedImg = findImageInState(msg.image_id);
             if (renamedImg) renamedImg.name = msg.image_name;
+            var renamedEl = document.querySelector('.character[data-image-id="' + msg.image_id + '"]');
+            if (renamedEl) {
+                renamedEl.title = msg.image_name || '';
+                var textSpan = renamedEl.querySelector('.text-content');
+                if (textSpan) textSpan.textContent = msg.image_name || '';
+            }
             if (currentFullscreenImageId === msg.image_id) {
                 var nameBar = document.getElementById('image-name-bar');
                 if (document.activeElement !== nameBar) {
@@ -196,10 +211,18 @@ function handleMessage(msg) {
             break;
 
         case 'action_rejected':
+            if (addTextPending) {
+                addTextPending = false;
+                addTextConfirmBtn.disabled = false;
+            }
             showToast(msg.error || '操作被拒绝', {type: 'error'});
             break;
 
         case 'upload_rejected':
+            if (addTextPending) {
+                addTextPending = false;
+                addTextConfirmBtn.disabled = false;
+            }
             showToast(msg.error || '上传被拒绝', {type: 'error'});
             break;
 

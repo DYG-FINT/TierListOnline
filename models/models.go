@@ -1,5 +1,10 @@
 package models
 
+const (
+	DisplayTypeImage = "image"
+	DisplayTypeText  = "text"
+)
+
 type TierList struct {
 	Title         string      `json:"title"`
 	BgColor       string      `json:"bg_color"`
@@ -15,11 +20,12 @@ type TierRow struct {
 }
 
 type ImageItem struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Filename string `json:"filename"`
-	URL      string `json:"url"`
-	FitWidth bool   `json:"fit_width"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Filename    string `json:"filename"`
+	URL         string `json:"url"`
+	FitWidth    bool   `json:"fit_width"`
+	DisplayType string `json:"display_type,omitempty"`
 }
 
 type Message struct {
@@ -66,6 +72,9 @@ type Message struct {
 
 	// rename_image / image_renamed
 	ImageName string `json:"image_name,omitempty"`
+
+	// add_text / text_added
+	TextContent string `json:"text_content,omitempty"`
 
 	// list_presets / load_preset / save_preset
 	PresetName string `json:"preset_name,omitempty"`

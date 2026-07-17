@@ -316,3 +316,77 @@ button:hover, .file-btn:hover { opacity: 0.85; }
     color: #fff;
     border: 1px solid #3a5795;
 }
+
+/* Add Text Dialog */
+#add-text-overlay {
+    opacity: 0;
+    visibility: hidden;
+    position: fixed;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 10000;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#add-text-overlay.active { opacity: 1; visibility: visible; }
+#add-text-modal {
+    background: #fff;
+    color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+}
+#add-text-modal h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    text-align: center;
+}
+#add-text-input {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    resize: none;
+    overflow-y: auto;
+    max-height: 200px;
+    line-height: 1.4;
+    font-family: inherit;
+}
+#add-text-input:focus {
+    outline: none;
+    border-color: #3a5795;
+}
+.add-text-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.add-text-buttons button {
+    padding: 10px 24px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+#add-text-close-btn {
+    background: #efefef;
+    border: 1px solid #ccc;
+    color: #333;
+}
+#add-text-confirm-btn {
+    background: #3a5795;
+    color: #fff;
+    border: 1px solid #3a5795;
+}
+#add-text-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
