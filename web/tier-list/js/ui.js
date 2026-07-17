@@ -329,18 +329,44 @@ if (stageAllBtn) {
 
 // ========== Image Fullscreen ==========
 
-function openImageFullscreen(url) {
+var currentFullscreenImageId = null;
+var imageNameDebounceTimer = null;
+
+function openImageFullscreen(url, name, imageId) {
     document.getElementById('image-fullscreen').src = url;
+    var nameBar = document.getElementById('image-name-bar');
+    nameBar.textContent = name || '';
+    nameBar.title = name || '';
+    currentFullscreenImageId = imageId || null;
     document.getElementById('image-overlay').classList.add('active');
 }
+
+document.getElementById('image-name-bar').addEventListener('input', function() {
+    if (!currentFullscreenImageId) return;
+    clearTimeout(imageNameDebounceTimer);
+    var nameBar = this;
+    imageNameDebounceTimer = setTimeout(function() {
+        send({type: 'rename_image', image_id: currentFullscreenImageId, image_name: nameBar.textContent.trim()});
+    }, 300);
+});
+
+document.getElementById('image-name-bar').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+    }
+});
 
 function closeImageFullscreen(e) {
     if (e && e.target !== document.getElementById('image-overlay')) return;
     document.getElementById('image-overlay').classList.remove('active');
+    clearTimeout(imageNameDebounceTimer);
+    currentFullscreenImageId = null;
 }
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         document.getElementById('image-overlay').classList.remove('active');
+        clearTimeout(imageNameDebounceTimer);
+        currentFullscreenImageId = null;
     }
 });

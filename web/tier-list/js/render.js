@@ -99,7 +99,7 @@ function setupDesktopImageEvents(div, img) {
     });
     div.addEventListener('pointerup', function(e) {
         if (pointerStart && Math.abs(e.clientX - pointerStart.x) < 4 && Math.abs(e.clientY - pointerStart.y) < 4) {
-            openImageFullscreen(img.url);
+            openImageFullscreen(img.url, img.name, img.id);
         }
         pointerStart = null;
     });
@@ -173,7 +173,7 @@ function setupMobileImageEvents(div, img) {
                     selectImage(imageId);
                 }
             }
-            openImageFullscreen(img.url);
+            openImageFullscreen(img.url, img.name, img.id);
             return;
         }
 

@@ -16,6 +16,7 @@ type TierRow struct {
 
 type ImageItem struct {
 	ID       string `json:"id"`
+	Name     string `json:"name"`
 	Filename string `json:"filename"`
 	URL      string `json:"url"`
 	FitWidth bool   `json:"fit_width"`
@@ -62,6 +63,9 @@ type Message struct {
 
 	// toggle_image_fit / image_fit_toggled
 	FitWidth bool `json:"fit_width,omitempty"`
+
+	// rename_image / image_renamed
+	ImageName string `json:"image_name,omitempty"`
 
 	// list_presets / load_preset / save_preset
 	PresetName string `json:"preset_name,omitempty"`

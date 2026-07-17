@@ -61,6 +61,16 @@ function handleMessage(msg) {
             state.rows = msg.rows;
             state.staging_images = msg.staging_images;
             renderAll();
+            if (currentFullscreenImageId) {
+                var curImg = findImageInState(currentFullscreenImageId);
+                if (curImg) {
+                    var curNameBar = document.getElementById('image-name-bar');
+                    if (document.activeElement !== curNameBar) {
+                        curNameBar.textContent = curImg.name || '';
+                    }
+                    curNameBar.title = curImg.name || '';
+                }
+            }
             break;
 
         case 'title_updated':
@@ -154,6 +164,22 @@ function handleMessage(msg) {
                     el.classList.remove('fit-width');
                 }
             }
+            break;
+
+        case 'image_renamed':
+            var renamedImg = findImageInState(msg.image_id);
+            if (renamedImg) renamedImg.name = msg.image_name;
+            if (currentFullscreenImageId === msg.image_id) {
+                var nameBar = document.getElementById('image-name-bar');
+                if (document.activeElement !== nameBar) {
+                    nameBar.textContent = msg.image_name;
+                }
+                nameBar.title = msg.image_name;
+            }
+            break;
+
+        case 'image_name_truncated':
+            showToast(msg.error || '图片名称已截断', {type: 'info'});
             break;
 
         case 'presets_list':

@@ -104,7 +104,10 @@
     <!-- Image Fullscreen Overlay -->
     <div id="image-overlay" onclick="closeImageFullscreen(event)">
         <button class="close-btn" onclick="closeImageFullscreen()">&times;</button>
-        <img id="image-fullscreen" src="" alt="">
+        <div id="image-overlay-content">
+            <div id="image-name-bar" contenteditable="plaintext-only"></div>
+            <img id="image-fullscreen" src="" alt="">
+        </div>
     </div>
 
     <!-- Preset Selection Dialog -->

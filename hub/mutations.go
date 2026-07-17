@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"tlo/auth"
 	"tlo/config"
@@ -219,8 +220,15 @@ func (h *Hub) uploadImage(filename, b64data string) ([]byte, []byte) {
 		return nil, r
 	}
 
+	baseName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	baseName = strings.TrimSpace(baseName)
+	if len(baseName) > 128 {
+		baseName = baseName[:128]
+	}
+
 	img := models.ImageItem{
 		ID:       id,
+		Name:     baseName,
 		Filename: savedName,
 		URL:      "/uploads/" + savedName,
 	}
@@ -428,6 +436,57 @@ func (h *Hub) toggleImageFit(imageID string) []byte {
 	return b
 }
 
+func (h *Hub) renameImage(imageID, imageName string) ([]byte, []byte) {
+	trimmed := strings.TrimSpace(imageName)
+	truncated := false
+	if len(trimmed) > 128 {
+		trimmed = trimmed[:128]
+		truncated = true
+	}
+
+	h.mu.Lock()
+	found := false
+	for i := range h.state.Rows {
+		for j := range h.state.Rows[i].Images {
+			if h.state.Rows[i].Images[j].ID == imageID {
+				h.state.Rows[i].Images[j].Name = trimmed
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for i := range h.state.StagingImages {
+			if h.state.StagingImages[i].ID == imageID {
+				h.state.StagingImages[i].Name = trimmed
+				found = true
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if !found {
+		return nil, nil
+	}
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{
+		Type:      "image_renamed",
+		ImageID:   imageID,
+		ImageName: trimmed,
+	})
+
+	var directResp []byte
+	if truncated {
+		directResp, _ = json.Marshal(models.Message{Type: "image_name_truncated", Error: "图片名称已截断至128个字符"})
+	}
+	return b, directResp
+}
+
 func (h *Hub) listPresets() []byte {
 	names := listPresetNames()
 	if names == nil {
@@ -479,7 +538,7 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 	}
 
 	if !alwaysAllowed[msg.Type] && !config.IsWhitelistIP(client.IP) && !client.HasPermission(msg.Type) {
-		log.Printf("权限不足：客户端 %s 的 %s 操作被拒绝", client.IP, msg.Type)
+		log.Printf("权限不足：用户 %s（%s） 的 %s 操作被拒绝", client.DisplayName, client.IP, msg.Type)
 		reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "您没有权限执行此操作"})
 		select {
 		case client.send <- reject:
@@ -583,6 +642,18 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		broadcast = h.applyColorSequence(msg.RowID)
 	case "toggle_image_fit":
 		broadcast = h.toggleImageFit(msg.ImageID)
+	case "rename_image":
+		var directResp []byte
+		broadcast, directResp = h.renameImage(msg.ImageID, msg.ImageName)
+		if directResp != nil {
+			select {
+			case client.send <- directResp:
+			default:
+			}
+		}
+		if broadcast == nil {
+			return
+		}
 	case "list_presets":
 		resp := h.listPresets()
 		select {
