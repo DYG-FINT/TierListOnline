@@ -27,6 +27,7 @@ type ImageItem struct {
 	FitWidth    bool   `json:"fit_width"`
 	DisplayType string `json:"display_type,omitempty"`
 	Color       string `json:"color,omitempty"`
+	TextColor   string `json:"text_color,omitempty"`
 }
 
 type Message struct {
@@ -35,8 +36,9 @@ type Message struct {
 	// set_title / title_updated
 	Title string `json:"title,omitempty"`
 
-	// set_bg_color / bg_color_updated
-	Color string `json:"color,omitempty"`
+	// set_bg_color / bg_color_updated / image_text_color_updated
+	Color     string `json:"color,omitempty"`
+	TextColor string `json:"text_color,omitempty"`
 
 	// update_label / label_updated
 	RowID string `json:"row_id,omitempty"`

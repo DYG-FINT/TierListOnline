@@ -62,6 +62,7 @@ function handleMessage(msg) {
             state.staging_images = msg.staging_images;
             renderAll();
             applyAllImageColors();
+            applyAllImageTextColors();
             if (currentFullscreenImageId) {
                 var curImg = findImageInState(currentFullscreenImageId);
                 if (curImg) {
@@ -185,6 +186,16 @@ function handleMessage(msg) {
             }
             if (currentFullscreenImageId === msg.image_id) {
                 highlightFullscreenSwatch(msg.color);
+            }
+            break;
+
+        case 'image_text_color_updated':
+            var textColorImg = findImageInState(msg.image_id);
+            if (textColorImg) textColorImg.text_color = msg.text_color;
+            var textColorEl = document.querySelector('.character[data-image-id="' + msg.image_id + '"]');
+            if (textColorEl) {
+                var tcSpan = textColorEl.querySelector('.text-content');
+                if (tcSpan) tcSpan.style.color = msg.text_color || '#ffffff';
             }
             break;
 

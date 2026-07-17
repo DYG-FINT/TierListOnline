@@ -85,6 +85,9 @@ function renderCharacter(img, container) {
         var textEl = document.createElement('span');
         textEl.className = 'text-content';
         textEl.textContent = img.name || '';
+        if (img.text_color) {
+            textEl.style.color = img.text_color;
+        }
         div.appendChild(textEl);
     } else {
         var imgEl = document.createElement('img');
@@ -325,6 +328,18 @@ function applyAllImageColors() {
             chars[i].style.backgroundColor = img.color;
         } else {
             chars[i].style.backgroundColor = '';
+        }
+    }
+}
+
+function applyAllImageTextColors() {
+    var chars = document.querySelectorAll('.character');
+    for (var i = 0; i < chars.length; i++) {
+        var id = chars[i].getAttribute('data-image-id');
+        var img = findImageInState(id);
+        var textSpan = chars[i].querySelector('.text-content');
+        if (textSpan) {
+            textSpan.style.color = (img && img.text_color) ? img.text_color : '#ffffff';
         }
     }
 }

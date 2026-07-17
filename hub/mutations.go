@@ -481,6 +481,51 @@ func (h *Hub) setImageColor(imageID, color string) []byte {
 	return b
 }
 
+func (h *Hub) setImageTextColor(imageID, textColor string) []byte {
+	if textColor != "" {
+		if len(textColor) != 7 || textColor[0] != '#' {
+			textColor = "#ffffff"
+		}
+	}
+
+	h.mu.Lock()
+	found := false
+	for i := range h.state.Rows {
+		for j := range h.state.Rows[i].Images {
+			if h.state.Rows[i].Images[j].ID == imageID {
+				h.state.Rows[i].Images[j].TextColor = textColor
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		for i := range h.state.StagingImages {
+			if h.state.StagingImages[i].ID == imageID {
+				h.state.StagingImages[i].TextColor = textColor
+				found = true
+				break
+			}
+		}
+	}
+	h.mu.Unlock()
+
+	if !found {
+		return nil
+	}
+	h.saveState()
+
+	b, _ := json.Marshal(models.Message{
+		Type:      "image_text_color_updated",
+		ImageID:   imageID,
+		TextColor: textColor,
+	})
+	return b
+}
+
 func (h *Hub) renameImage(imageID, imageName string) ([]byte, []byte) {
 	trimmed := strings.TrimSpace(imageName)
 	truncated := false
@@ -604,6 +649,10 @@ var alwaysAllowed = map[string]bool{
 	"change_display_name": true,
 }
 
+var permMapping = map[string]string{
+	"set_image_text_color": "set_image_color",
+}
+
 func (h *Hub) handleMessage(client *Client, raw []byte) {
 	var msg models.Message
 	if err := json.Unmarshal(raw, &msg); err != nil {
@@ -611,7 +660,12 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		return
 	}
 
-	if !alwaysAllowed[msg.Type] && !config.IsWhitelistIP(client.IP) && !client.HasPermission(msg.Type) {
+	checkPerm := msg.Type
+	if mapped, ok := permMapping[msg.Type]; ok {
+		checkPerm = mapped
+	}
+
+	if !alwaysAllowed[msg.Type] && !config.IsWhitelistIP(client.IP) && !client.HasPermission(checkPerm) {
 		log.Printf("权限不足：用户 %s（%s） 的 %s 操作被拒绝", client.DisplayName, client.IP, msg.Type)
 		reject, _ := json.Marshal(models.Message{Type: "action_rejected", Error: "您没有权限执行此操作"})
 		select {
@@ -731,6 +785,11 @@ func (h *Hub) handleMessage(client *Client, raw []byte) {
 		broadcast = h.toggleImageFit(msg.ImageID)
 	case "set_image_color":
 		broadcast = h.setImageColor(msg.ImageID, msg.Color)
+		if broadcast == nil {
+			return
+		}
+	case "set_image_text_color":
+		broadcast = h.setImageTextColor(msg.ImageID, msg.TextColor)
 		if broadcast == nil {
 			return
 		}

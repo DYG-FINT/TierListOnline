@@ -418,6 +418,46 @@ function selectFullscreenColor(color) {
     send({type: 'set_image_color', image_id: currentFullscreenImageId, color: color});
 }
 
+function inverseColor(hex) {
+    var h = hex.replace('#', '');
+    var r = parseInt(h.substring(0, 2), 16);
+    var g = parseInt(h.substring(2, 4), 16);
+    var b = parseInt(h.substring(4, 6), 16);
+    var ir = (255 - r).toString(16);
+    if (ir.length < 2) ir = '0' + ir;
+    var ig = (255 - g).toString(16);
+    if (ig.length < 2) ig = '0' + ig;
+    var ib = (255 - b).toString(16);
+    if (ib.length < 2) ib = '0' + ib;
+    return '#' + ir + ig + ib;
+}
+
+function selectFullscreenTextColor(color) {
+    if (!currentFullscreenImageId) return;
+    var currentImg = findImageInState(currentFullscreenImageId);
+    var currentTextColor = currentImg && currentImg.text_color ? currentImg.text_color : '#ffffff';
+
+    // Transparent → white, otherwise inverse
+    var textColor;
+    if (!color) {
+        textColor = '#ffffff';
+    } else {
+        textColor = inverseColor(color);
+    }
+
+    if (normalizeColor(textColor) === normalizeColor(currentTextColor)) return;
+
+    // Apply locally
+    var el = document.querySelector('.character[data-image-id="' + currentFullscreenImageId + '"]');
+    if (el) {
+        var tcs = el.querySelector('.text-content');
+        if (tcs) tcs.style.color = textColor;
+    }
+
+    send({type: 'set_image_text_color', image_id: currentFullscreenImageId, text_color: textColor});
+    showToast('操作成功', {type: 'success'});
+}
+
 document.getElementById('image-name-bar').addEventListener('input', function() {
     if (!currentFullscreenImageId) return;
     clearTimeout(imageNameDebounceTimer);
@@ -448,9 +488,38 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-document.getElementById('fullscreen-color-select').addEventListener('click', function(e) {
+var fullscreenColorPressTimer = null;
+var fullscreenColorPressSpan = null;
+
+document.getElementById('fullscreen-color-select').addEventListener('pointerdown', function(e) {
     var span = e.target.closest('span');
     if (!span) return;
-    var color = span.getAttribute('data-color') || '';
-    selectFullscreenColor(color);
+    fullscreenColorPressSpan = span;
+    fullscreenColorPressTimer = setTimeout(function() {
+        fullscreenColorPressTimer = null;
+        var color = fullscreenColorPressSpan.getAttribute('data-color') || '';
+        selectFullscreenTextColor(color);
+        fullscreenColorPressSpan = null;
+    }, 500);
+});
+
+document.getElementById('fullscreen-color-select').addEventListener('pointerup', function(e) {
+    if (fullscreenColorPressTimer) {
+        clearTimeout(fullscreenColorPressTimer);
+        fullscreenColorPressTimer = null;
+        var span = e.target.closest('span');
+        if (span) {
+            var color = span.getAttribute('data-color') || '';
+            selectFullscreenColor(color);
+        }
+        fullscreenColorPressSpan = null;
+    }
+});
+
+document.getElementById('fullscreen-color-select').addEventListener('pointerleave', function() {
+    if (fullscreenColorPressTimer) {
+        clearTimeout(fullscreenColorPressTimer);
+        fullscreenColorPressTimer = null;
+        fullscreenColorPressSpan = null;
+    }
 });
